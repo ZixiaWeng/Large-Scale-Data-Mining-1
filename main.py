@@ -3,6 +3,8 @@ from sklearn.datasets import fetch_20newsgroups
 from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.feature_extraction import text
+from nltk.stem import PorterStemmer
 
 
 def get_graphic(category):
@@ -11,14 +13,23 @@ def get_graphic(category):
         categories=category,
         shuffle=True,
         random_state=42
-    )['data']
+    )
 
 
 def get_graphic_len(category):
-    return len(get_graphic(category))
+    return len(get_graphic(category).data)
 
 
 def question_a():
+    res = {}
+    for c in categories:
+        res[c] = get_graphic_len([c])
+
+    plt.bar(res.keys(), res.values(), 0.5, color=['g', 'r', 'b', 'y', 'r', 'y', 'r', 'y'])
+    plt.show()
+
+
+if __name__ == '__main__':
     categories = [
         'comp.graphics',
         'comp.os.ms-windows.misc',
@@ -29,19 +40,20 @@ def question_a():
         'rec.sport.baseball',
         'rec.sport.hockey'
     ]
-
-    res = {}
-    for c in categories:
-        res[c] = get_graphic_len([c])
-
-    plt.bar(res.keys(), res.values(), 0.5, color=['g', 'r', 'b', 'y', 'r', 'y', 'r', 'y'])
-    plt.show()
-
-
-if __name__ == '__main__':
+    stop_words = text.ENGLISH_STOP_WORDS
     
-    text = get_graphic(['comp.graphics'])[0]
-    print text
+    doc = get_graphic(categories)
+    ps = PorterStemmer()
+    vectorizer = text.TfidfVectorizer(
+        stop_words=stop_words,
+        encoding='unicode',
+        analyzer='word',
+        min_df=5,
+        tokenizer=ps.stem
+    )
+    vectors = vectorizer.fit_transform(doc.data)
+    print vectors.shape
+    # print text.strip('\n').rstrip('\n').split(' ')
     # pp.pprint(Counter())
 
 
