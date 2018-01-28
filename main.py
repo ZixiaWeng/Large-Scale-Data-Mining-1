@@ -4,8 +4,10 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.feature_extraction import text
+from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem import PorterStemmer
 
+#This File contains Question a&b
 
 def get_graphic(category):
     return fetch_20newsgroups(
@@ -25,9 +27,9 @@ def question_a():
     for c in categories:
         res[c] = get_graphic_len([c])
 
+    # Plot the histogram
     plt.bar(res.keys(), res.values(), 0.5, color=['g', 'r', 'b', 'y', 'r', 'y', 'r', 'y'])
     plt.show()
-
 
 if __name__ == '__main__':
     categories = [
@@ -49,11 +51,14 @@ if __name__ == '__main__':
         encoding='unicode',
         analyzer='word',
         min_df=5,
-        tokenizer=ps.stem
+        # tokenizer=ps.stem
     )
     vectors = vectorizer.fit_transform(doc.data)
-    print vectors.shape
+    vectorizer.fit(doc.data)
+    # print vectors.shape
+    print(vectorizer.vocabulary_,len(vectorizer.vocabulary_))
+    print(vectorizer.idf_)
     # print text.strip('\n').rstrip('\n').split(' ')
     # pp.pprint(Counter())
-
+    
 
