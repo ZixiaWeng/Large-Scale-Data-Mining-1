@@ -84,9 +84,9 @@ def stemTokenizer(para):
 stop_words = text.ENGLISH_STOP_WORDS
 
 # vectorizer_2 = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
-# vectorizer_5 = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=5, tokenizer=stemTokenizer)
+vectorizer_5 = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=5, tokenizer=stemTokenizer)
 # vectors_2 = vectorizer_2.fit_transform(train_data.data)
-# vectors_5 = vectorizer_5.fit_transform(train_data.data)
+vectors_5 = vectorizer_5.fit_transform(train_data.data)
 # print ("terms num when mid_df = 2: %d" % vectors_2.shape[1])
 # print ("terms num when mid_df = 5: %d" % vectors_5.shape[1])
 
@@ -97,76 +97,81 @@ tfidf_transformer = TfidfTransformer()
 # ------------------------------------------- #
 # -------------------- C -------------------- #
 # ------------------------------------------- #
-import numpy as np
+# import numpy as np
 
 
-def argmax_N(arr, n):
-    return np.argpartition(arr, -n)[-n:]
+# def argmax_N(arr, n):
+#     return np.argpartition(arr, -n)[-n:]
 
 
-allCat = [
-    'comp.sys.ibm.pc.hardware',
-    'comp.sys.mac.hardware',
-    'misc.forsale',
-    'soc.religion.christian',
-    'comp.graphics',
-    'comp.os.ms-windows.misc',
-    'comp.windows.x',
-    'rec.autos',
-    'rec.motorcycles',
-    'rec.sport.baseball',
-    'rec.sport.hockey',
-    'alt.atheism',
-    'sci.crypt',
-    'sci.electronics',
-    'sci.med',
-    'sci.space',
-    'talk.politics.guns',
-    'talk.politics.mideast',
-    'talk.politics.misc',
-    'talk.religion.misc'
-]
-allDoc = []
-for cat in allCat:
-    data = fetch_data([cat], 'train').data
-    poke = ""
-    for doc in data:
-        poke = poke + " " + doc
-    allDoc.append(poke)
+# allCat = [
+#     'comp.sys.ibm.pc.hardware',
+#     'comp.sys.mac.hardware',
+#     'misc.forsale',
+#     'soc.religion.christian',
+#     'comp.graphics',
+#     'comp.os.ms-windows.misc',
+#     'comp.windows.x',
+#     'rec.autos',
+#     'rec.motorcycles',
+#     'rec.sport.baseball',
+#     'rec.sport.hockey',
+#     'alt.atheism',
+#     'sci.crypt',
+#     'sci.electronics',
+#     'sci.med',
+#     'sci.space',
+#     'talk.politics.guns',
+#     'talk.politics.mideast',
+#     'talk.politics.misc',
+#     'talk.religion.misc'
+# ]
+# allDoc = []
+# for cat in allCat:
+#     data = fetch_data([cat], 'train').data
+#     poke = ""
+#     for doc in data:
+#         poke = poke + " " + doc
+#     allDoc.append(poke)
 
-vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
-vectors = vectorizer.fit_transform(allDoc)
-print(vectors.shape)
+# vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
+# vectors = vectorizer.fit_transform(allDoc)
+# print(vectors.shape)
 
-tficf_train = tfidf_transformer.fit_transform(vectors)
-tficf_train_copy = tficf_train.copy()
-features = vectorizer.get_feature_names()
-for i in range(4):
-    doc = tficf_train_copy[i]
-    max_indexs = argmax_N(doc, 10)
-    # print doc
-    words = []
-    for j in range(10):
-        words.append(features[np.argmax(doc)])
-        tficf_train_copy[i, np.argmax(doc)] = 0
-    print(allCat[i], words)
-
+# tficf_train = tfidf_transformer.fit_transform(vectors)
+# tficf_train_copy = tficf_train.copy()
+# features = vectorizer.get_feature_names()
+# for i in range(4):
+#     words = []
+#     for j in range(10):
+#         doc = tficf_train_copy[i]
+#         max_index = np.argmax(doc)
+#         words.append(features[max_index])
+#         tficf_train_copy[i, max_index] = 0
+#     print(allCat[i], words)
 
 
-
-
-# from nltk.stem import PorterStemmer
-# from sklearn.decomposition import TruncatedSVD
-# from sklearn.decomposition import NMF
-# from sklearn import svm
-# from sklearn.metrics import classification_report, confusion_matrix, roc_curve
-# tfidf_train = TfidfTransformer().fit_transform(main.vectors)
+# ------------------------------------------- #
+# -------------------- D -------------------- #
+# ------------------------------------------- #
+from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import NMF
 
 # #pply LSI to the TFxIDF matrix corresponding to the 8 classes. and pick k=50; so each document is mapped to a 50-dimensional vector. Alternatively, reduce dimensionality through Non-Negative Matrix Factorization (NMF) and compare the results of the parts e-i using both methods.
-# SVD = TruncatedSVD(n_components=50, random_state=42)
-# transformed_tfidf = SVD.fit_transform(tfidf_train)
-# print transformed_tfidf.shape
+SVD = TruncatedSVD(n_components=50, random_state=42)
+tfidf_SVD = SVD.fit_transform(vectors_5)
+print tfidf_SVD.shape
 
+trainNMF = NMF(n_components=50, init='random', random_state=42)
+tfid_NMF = trainNMF.fit_transform(vectors_5)
+print tfid_NMF.shape
+
+
+# ------------------------------------------- #
+# -------------------- E -------------------- #
+# ------------------------------------------- #
+# from sklearn import svm
+# from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 
 # # Main
 # trainingPoints = []
