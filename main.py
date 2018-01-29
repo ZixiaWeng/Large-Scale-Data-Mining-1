@@ -10,6 +10,7 @@ from nltk.stem import PorterStemmer
 import string,re
 
 #This File contains Question a&b
+
 def stemTokenizer(text):
     stemmer = SnowballStemmer("english")
     temp = "".join([i if ord(i) < 128 else ' ' for i in text])#remove non-ascii
