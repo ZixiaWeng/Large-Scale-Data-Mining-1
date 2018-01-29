@@ -18,6 +18,9 @@ from sklearn.decomposition import NMF
 # E
 from sklearn import svm
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve
+# F
+from sklearn.model_selection import cross_val_score
+
 
 # ------------------------------------------- #
 # -------------------- A -------------------- #
@@ -172,44 +175,12 @@ tfidf_SVD = SVD.fit_transform(tfid)
 # ------------------------------------------- #
 # -------------------- E -------------------- #
 # ------------------------------------------- #
-def svm_classify(classifier, name):
-    print '============= %s =============' % name
-    train_data = fetch_data(categories, 'train')
-    test_data = fetch_data(categories, 'test')
-
-    # build training and testing lables
-    train_labels = []
-    for i in train_data.target:
-        if i >= 4:
-            train_labels.append(1)
-        else:
-            train_labels.append(0)
-
-    test_labels = []
-    for i in test_data.target:
-        if i >= 4:
-            test_labels.append(1)
-        else:
-            test_labels.append(0)
-
-    # build testing data
-    test_vectors = vectorizer.fit_transform(test_data.data)
-    test_tfidf = tfidf_transformer.fit_transform(test_vectors)
-    test_tfidf_SVD = SVD.fit_transform(test_tfidf)
-
-    classifier.fit(tfidf_SVD, train_labels)
-
-    # make prediction
-    prediction = classifier.predict(test_tfidf_SVD)
-    score = classifier.decision_function(test_tfidf_SVD)
-    acc = np.mean(prediction == test_labels)
-
-    # print results
+def show_result(score, acc, report, matrix):
     print "Accuracy: %.2f" % acc
     print "Classification Report:"
-    print classification_report(test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+    print report
     print "Confusion Matrix:"
-    print confusion_matrix(test_labels, prediction)
+    print matrix
 
     fpr, tpr, _ = roc_curve(test_labels, score)
     plt.plot([0, 1], [0, 1])
@@ -221,9 +192,79 @@ def svm_classify(classifier, name):
     plt.show()
 
 
-hard_classifier = svm.LinearSVC(C=1000, random_state=42)
-soft_classifier = svm.LinearSVC(C=0.01, random_state=42)
-svm_classify(hard_classifier, 'Hard Margin SVM')
-svm_classify(soft_classifier, 'Soft Margin SVM')
+def svm_classify(classifier, train_data, test_data, train_labels, test_labels, name):
+    print '============= %s =============' % name
+
+    # build testing data
+    test_vectors = vectorizer.fit_transform(test_data.data)
+    test_tfidf = tfidf_transformer.fit_transform(test_vectors)
+    test_tfidf_SVD = SVD.fit_transform(test_tfidf)
+
+    # train model
+    classifier.fit(tfidf_SVD, train_labels)
+
+    # make prediction
+    prediction = classifier.predict(test_tfidf_SVD)
+    score = classifier.decision_function(test_tfidf_SVD)
+    acc = np.mean(prediction == test_labels)
+    report = classification_report(test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+    matrix = confusion_matrix(test_labels, prediction) 
+
+    show_result(score, acc, report, matrix)
+
+
+# fetch training and testing labels
+train_data = fetch_data(categories, 'train')
+test_data = fetch_data(categories, 'test')
+
+# build training and testing labels
+train_labels = []
+for i in train_data.target:
+    if i >= 4:
+        train_labels.append(1)
+    else:
+        train_labels.append(0)
+
+test_labels = []
+for i in test_data.target:
+    if i >= 4:
+        test_labels.append(1)
+    else:
+        test_labels.append(0)
+
+# build classifiers
+# hard_classifier = svm.LinearSVC(C=1000, random_state=42)
+# soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
+# svm_classify(hard_classifier, train_data, test_data, train_labels, test_labels, 'Hard Margin SVM')
+# svm_classify(soft_classifier, train_data, test_data, train_labels, test_labels, 'Soft Margin SVM')
+
+# ------------------------------------------- #
+# -------------------- F -------------------- #
+# ------------------------------------------- #
+best_score = 0
+best_gamma = 0
+for gamma in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+    classifier = svm.LinearSVC(C=gamma, random_state=42)
+    classifier.fit(tfidf_SVD, train_labels)
+    scores = (cross_val_score(classifier, tfidf_SVD, train_labels, cv=5))
+    score = scores.mean()
+    if score > best_score:
+        best_score = score
+        best_gamma = gamma
+
+    print "Accuracy: %.5f | gamma: " % score, gamma
+
+print "Best Accuracy: %.5f | gamma: %d" % (best_score, best_gamma)
+
+classifier = svm.LinearSVC(C=best_gamma, random_state=42)
+svm_classify(classifier, train_data, test_data, train_labels, test_labels, 'Soft Margin SVM')
+
+# ------------------------------------------- #
+# -------------------- G -------------------- #
+# ------------------------------------------- #
+
+
+
+
 
 
