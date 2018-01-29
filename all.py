@@ -177,7 +177,8 @@ from sklearn import svm
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 
 
-def svm_classify(classifier):
+def svm_classify(classifier, name):
+    print '============= %s =============' % name
     train_data = fetch_data(categories, 'train')
     test_data = fetch_data(categories, 'test')
 
@@ -210,29 +211,25 @@ def svm_classify(classifier):
 
     # print results
     print "Accuracy: %.2f" % acc
-    print "-"*60
-    print "Classification report: "
+    print "Classification Report:"
     print classification_report(test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
-    print "-"*60
-    print "Confusion Matrix: "
+    print "Confusion Matrix:"
     print confusion_matrix(test_labels, prediction)
-    print "-"*60
 
     fpr, tpr, _ = roc_curve(test_labels, score)
-    line = [0, 1]
-    plt.figure(figsize=(10, 10))
+    # plt.figure(figsize=(10, 10))
+    plt.plot([0, 1], [0, 1])
     plt.plot(fpr, tpr)
-    plt.plot(line, line)
-    plt.ylabel('True Positive Rate', fontsize=20)
-    plt.xlabel('False Positive Rate', fontsize=20)
-    plt.title('ROC-Curve of Hard Margin SVM Classification', fontsize=20)
-    plt.axis([-0.004, 1, 0, 1.006])
+    plt.ylabel('TPR')
+    plt.xlabel('FPR')
+    plt.title('ROC Curve')
+    plt.axis([0, 1, 0, 1])
     plt.show()
 
 
 hard_classifier = svm.LinearSVC(C=1000, dual=False, random_state=42)
 soft_classifier = svm.LinearSVC(C=0.01, dual=False, random_state=42)
-svm_classify(hard_classifier)
-svm_classify(soft_classifier)
+svm_classify(hard_classifier, 'Hard Margin SVM')
+svm_classify(soft_classifier, 'Soft Margin SVM')
 
 
