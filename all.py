@@ -1,8 +1,23 @@
+# A
 import random
 from sklearn.datasets import fetch_20newsgroups
 from collections import defaultdict
 import matplotlib.pyplot as plt
-
+# B
+import re
+import string
+from sklearn.feature_extraction import text
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.stem.snowball import SnowballStemmer
+# C
+import numpy as np
+# D
+from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import NMF
+# E
+from sklearn import svm
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 
 # ------------------------------------------- #
 # -------------------- A -------------------- #
@@ -64,15 +79,6 @@ plt.show()
 # ------------------------------------------- #
 # -------------------- B -------------------- #
 # ------------------------------------------- #
-import re
-import string
-from sklearn.feature_extraction import text
-# from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.feature_extraction.text import CountVectorizer
-from nltk.stem.snowball import SnowballStemmer
-
-
 def stemTokenizer(para):
     stemmer = SnowballStemmer("english")
     temp = "".join([i if ord(i) < 128 else ' ' for i in para])  # remove non-ascii
@@ -100,9 +106,6 @@ vectors = vectors_5
 # ------------------------------------------- #
 # -------------------- C -------------------- #
 # ------------------------------------------- #
-import numpy as np
-
-
 # def argmax_N(arr, n):
 #     return np.argpartition(arr, -n)[-n:]
 
@@ -157,10 +160,6 @@ import numpy as np
 # ------------------------------------------- #
 # -------------------- D -------------------- #
 # ------------------------------------------- #
-from sklearn.decomposition import TruncatedSVD
-from sklearn.decomposition import NMF
-
-# #pply LSI to the TFxIDF matrix corresponding to the 8 classes. and pick k=50; so each document is mapped to a 50-dimensional vector. Alternatively, reduce dimensionality through Non-Negative Matrix Factorization (NMF) and compare the results of the parts e-i using both methods.
 SVD = TruncatedSVD(n_components=50, random_state=42)
 tfidf_SVD = SVD.fit_transform(tfid)
 # print tfidf_SVD.shape
@@ -173,10 +172,6 @@ tfidf_SVD = SVD.fit_transform(tfid)
 # ------------------------------------------- #
 # -------------------- E -------------------- #
 # ------------------------------------------- #
-from sklearn import svm
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve
-
-
 def svm_classify(classifier, name):
     print '============= %s =============' % name
     train_data = fetch_data(categories, 'train')
@@ -226,8 +221,8 @@ def svm_classify(classifier, name):
     plt.show()
 
 
-hard_classifier = svm.LinearSVC(C=1000, dual=False, random_state=42)
-soft_classifier = svm.LinearSVC(C=0.01, dual=False, random_state=42)
+hard_classifier = svm.LinearSVC(C=1000, random_state=42)
+soft_classifier = svm.LinearSVC(C=0.01, random_state=42)
 svm_classify(hard_classifier, 'Hard Margin SVM')
 svm_classify(soft_classifier, 'Soft Margin SVM')
 
