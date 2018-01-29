@@ -94,10 +94,13 @@ tfidf_transformer = TfidfTransformer()
 # tfid = tfidf_transformer.fit_transform(vectors_5)
 # print tfid.shape
 
+vectorizer = vectorizer_5
+vectors = vectors_5
+
 # ------------------------------------------- #
 # -------------------- C -------------------- #
 # ------------------------------------------- #
-# import numpy as np
+import numpy as np
 
 
 # def argmax_N(arr, n):
@@ -135,10 +138,10 @@ tfidf_transformer = TfidfTransformer()
 #     allDoc.append(poke)
 
 # vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
-# vectors = vectorizer.fit_transform(allDoc)
-# print(vectors.shape)
+# vectors_full = vectorizer.fit_transform(allDoc)
+# print(vectors_full.shape)
 
-# tficf_train = tfidf_transformer.fit_transform(vectors)
+# tficf_train = tfidf_transformer.fit_transform(vectors_full)
 # tficf_train_copy = tficf_train.copy()
 # features = vectorizer.get_feature_names()
 # for i in range(4):
@@ -159,49 +162,97 @@ from sklearn.decomposition import NMF
 
 # #pply LSI to the TFxIDF matrix corresponding to the 8 classes. and pick k=50; so each document is mapped to a 50-dimensional vector. Alternatively, reduce dimensionality through Non-Negative Matrix Factorization (NMF) and compare the results of the parts e-i using both methods.
 SVD = TruncatedSVD(n_components=50, random_state=42)
-tfidf_SVD = SVD.fit_transform(vectors_5)
-print tfidf_SVD.shape
+tfidf_SVD = SVD.fit_transform(vectors)
+# print tfidf_SVD.shape
 
-trainNMF = NMF(n_components=50, init='random', random_state=42)
-tfid_NMF = trainNMF.fit_transform(vectors_5)
-print tfid_NMF.shape
+# trainNMF = NMF(n_components=50, init='random', random_state=42)
+# tfid_NMF = trainNMF.fit_transform(vectors)
+# print tfid_NMF.shape
 
 
 # ------------------------------------------- #
 # -------------------- E -------------------- #
 # ------------------------------------------- #
-# from sklearn import svm
-# from sklearn.metrics import classification_report, confusion_matrix, roc_curve
+from sklearn import svm
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 
-# # Main
+train = fetch_20newsgroups(subset="train", categories=categories, shuffle=True, random_state=42)
+hard_classifier = svm.LinearSVC(C=1000 ,dual=False, random_state=42)
+train_targets = []# bigger than or equal to 4 belongs to recreational activity  
+for i in train.target:
+    if i >= 4:
+        train_targets.append(1)
+    else:
+        train_targets.append(0)
+        
+hard_classifier.fit(tfidf_SVD, train_targets)#train the classifier
+
+test = fetch_20newsgroups(subset="test", categories=categories, shuffle=True, random_state=42)
+test_counts = vectorizer.fit_transform(test.data)#using the train CountVectorizer
+tfidf_test = tfidf_transformer.fit_transform(test_counts)#using the train TfidfTransformer
+transformed_test_tfidf = SVD.fit_transform(tfidf_test)#using the train TruncatedSVD
+
+test_targets = []# bigger than or equal to 4 belongs to recreational activity  
+for i in test.target:
+    if i >= 4:
+        test_targets.append(1)
+    else:
+        test_targets.append(0)
+
+predicted = hard_classifier.predict(transformed_test_tfidf)
+
+score = hard_classifier.decision_function(transformed_test_tfidf)
+accuracy = np.mean(predicted == test_targets)
+# Report results
+print("Accuracy of Hard Margin SVM: " + str(accuracy))
+print("-"*60)
+print("Classification report: ")
+print(classification_report(test_targets, predicted, target_names=['Computer technology', 'Recreational activity']))
+print("-"*60)
+print("Confusion Matrix: ")
+print(confusion_matrix(test_targets, predicted))
+print("-"*60)
+
+fpr, tpr, threshold = roc_curve(test_targets, score)
+line = [0, 1]
+plt.figure(figsize=(10,10))
+plt.plot(fpr, tpr)
+plt.plot([0,1],[0,1])
+plt.ylabel('True Positive Rate', fontsize = 20)
+plt.xlabel('False Positive Rate', fontsize = 20)
+plt.title('ROC-Curve of Hard Margin SVM Classification', fontsize = 20)
+plt.axis([-0.004, 1, 0, 1.006])
+plt.show()
+# build training and testing data with label 0 and 1
 # trainingPoints = []
 # testingPoints = []
-# test = get_graphic(categories, 'test')
-# test_counts = main.vectorizer.fit_transform(test.data)
-# tfidf_test = TfidfTransformer().fit_transform(test_counts)
-# transformed_test_tfidf = SVD.fit_transform(tfidf_test)
-
-# # Hard Classifier
-# h_c = svm.LinearSVC(C = 1000, dual = False, random_state = 42)
-
-# for i in get_graphic(categories, 'train').target:
-#     if i<4: 
+# for i in fetch_data(categories, 'train').target:
+#     if i < 4:
 #         trainingPoints.append(0)
 #     else:
 #         trainingPoints.append(1)
-# # print trainingPoints
-# h_c.fit(transformed_tfidf, trainingPoints)
+# print trainingPoints
 
-# for i in get_graphic(categories, 'test').target:
-#     if i<4: 
+# for i in fetch_data(categories, 'test').target:
+#     if i < 4:
 #         testingPoints.append(0)
 #     else:
 #         testingPoints.append(1)
-# # print testingPoints
+# print testingPoints
 
-# predicted = h_c.predict(transformed_test_tfidf)
-# score = h_c.decision_function(transformed_test_tfidf)
+# # build hard classifier
+# h_c = svm.LinearSVC(C=1000, dual=False, random_state=42)
+# h_c.fit(tfidf_SVD, trainingPoints)
+
+# # feed data
+# test = fetch_data(categories, 'test')
+# test_counts = vectorizer.fit_transform(test.data)
+# tfidf_test = TfidfTransformer().fit_transform(test_counts)
+# tfidf_test_SVD = SVD.fit_transform(tfidf_test)
+# predicted = h_c.predict(tfidf_test_SVD)
+# score = h_c.decision_function(tfidf_test_SVD)
 # accuracy = np.mean(predicted == testingPoints)
+
 # # Report results
 # print("Accuracy of Hard Margin SVM: " + str(accuracy))
 # print("-"*60)
@@ -212,17 +263,17 @@ print tfid_NMF.shape
 # print(confusion_matrix(testingPoints, predicted))
 # print("-"*60)
 
-# fpr, tpr, threshold = roc_curve(testingPoints, score)
+# fpr, tpr, _ = roc_curve(testingPoints, score)
 # line = [0, 1]
-# plt.figure(figsize=(10,10))
+# plt.figure(figsize=(10, 10))
 # plt.plot(fpr, tpr)
-# plt.plot([0,1],[0,1])
-# plt.ylabel('True Positive Rate', fontsize = 20)
-# plt.xlabel('False Positive Rate', fontsize = 20)
-# plt.title('ROC-Curve of Hard Margin SVM Classification', fontsize = 20)
+# plt.plot([0, 1], [0, 1])
+# plt.ylabel('True Positive Rate', fontsize=20)
+# plt.xlabel('False Positive Rate', fontsize=20)
+# plt.title('ROC-Curve of Hard Margin SVM Classification', fontsize=20)
 # plt.axis([-0.004, 1, 0, 1.006])
 # plt.show()
-# # print doc.target, len(doc.target)
+# print doc.target, len(doc.target)
 
 
 
