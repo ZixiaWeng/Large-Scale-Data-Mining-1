@@ -6,7 +6,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.stem import PorterStemmer
 from nltk.stem.snowball import SnowballStemmer
 from sklearn.feature_extraction.text import TfidfTransformer
-import string,re
+import string
+import re
 
 #This File contains Question C
 
@@ -14,7 +15,7 @@ def stemTokenizer(text):
 	stemmer = SnowballStemmer("english")
 	temp = "".join([i if ord(i) < 128 else ' ' for i in text])#remove non-ascii
 	temp = re.sub('[,.-:/()?><{}*$#&]','', temp) #remove some special punc
-	tem = "".join(c for c in temp if c not in string.punctuation)
+	tem = "".join(c for c in temp if c not in string.punctuation)#remove punctuations
 	return [stemmer.stem(item) for item in temp.split()]
 
 
@@ -55,17 +56,17 @@ if __name__ == '__main__':
 
 	allDoc = []
 	for cat in allCat:
-	    category_data = get_graphic([cat]).data
+	    categoryStr = get_graphic([cat]).data
 	    poke = ""
-	    for doc in category_data:
+	    for doc in categoryStr:
 	        poke = poke + "" + doc
 	    allDoc.append(poke)
 	    
 	vectorizer = CountVectorizer(analyzer='word',stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
 	vectors = vectorizer.fit_transform(allDoc)
 	print(vectors.shape)
+	
 	tficf_train = tfidf_transformer.fit_transform(vectors)
-
 	tficf_train_copy = tficf_train.copy()
 	features = vectorizer.get_feature_names()
 	for i in range(4):
