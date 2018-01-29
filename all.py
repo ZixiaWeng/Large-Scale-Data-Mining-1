@@ -217,7 +217,6 @@ def svm_classify(classifier, name):
     print confusion_matrix(test_labels, prediction)
 
     fpr, tpr, _ = roc_curve(test_labels, score)
-    # plt.figure(figsize=(10, 10))
     plt.plot([0, 1], [0, 1])
     plt.plot(fpr, tpr)
     plt.ylabel('TPR')
