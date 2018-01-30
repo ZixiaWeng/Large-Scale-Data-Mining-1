@@ -167,8 +167,8 @@ SVD = TruncatedSVD(n_components=50, random_state=42)
 tfidf_SVD = SVD.fit_transform(tfid)
 # print tfidf_SVD.shape
 
-# trainNMF = NMF(n_components=50, init='random', random_state=42)
-# tfid_NMF = trainNMF.fit_transform(vectors)
+trainNMF = NMF(n_components=50, init='random', random_state=42)
+tfid_NMF = trainNMF.fit_transform(vectors)
 # print tfid_NMF.shape
 
 
@@ -192,23 +192,18 @@ def show_result(score, acc, report, matrix):
     plt.show()
 
 
-def svm_classify(classifier, train_data, test_data, train_labels, test_labels, name):
+def svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, name):
     print '============= %s =============' % name
-
-    # build testing data
-    test_vectors = vectorizer.fit_transform(test_data.data)
-    test_tfidf = tfidf_transformer.fit_transform(test_vectors)
-    test_tfidf_SVD = SVD.fit_transform(test_tfidf)
 
     # train model
     classifier.fit(tfidf_SVD, train_labels)
 
     # make prediction
-    prediction = classifier.predict(test_tfidf_SVD)
-    score = classifier.decision_function(test_tfidf_SVD)
+    prediction = classifier.predict(tfidf_SVD_test)
+    score = classifier.decision_function(tfidf_SVD_test)
     acc = np.mean(prediction == test_labels)
     report = classification_report(test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
-    matrix = confusion_matrix(test_labels, prediction) 
+    matrix = confusion_matrix(test_labels, prediction)
 
     show_result(score, acc, report, matrix)
 
@@ -232,11 +227,16 @@ for i in test_data.target:
     else:
         test_labels.append(0)
 
+# build testing data
+test_vectors = vectorizer.fit_transform(test_data.data)
+test_tfidf = tfidf_transformer.fit_transform(test_vectors)
+tfidf_SVD_test = SVD.fit_transform(test_tfidf)
+
 # build classifiers
 # hard_classifier = svm.LinearSVC(C=1000, random_state=42)
 # soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
-# svm_classify(hard_classifier, train_data, test_data, train_labels, test_labels, 'Hard Margin SVM')
-# svm_classify(soft_classifier, train_data, test_data, train_labels, test_labels, 'Soft Margin SVM')
+# svm_classify(hard_classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Hard Margin SVM')
+# svm_classify(soft_classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Soft Margin SVM')
 
 # ------------------------------------------- #
 # -------------------- F -------------------- #
@@ -257,14 +257,23 @@ for gamma in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
 print "Best Accuracy: %.5f | gamma: %d" % (best_score, best_gamma)
 
 classifier = svm.LinearSVC(C=best_gamma, random_state=42)
-svm_classify(classifier, train_data, test_data, train_labels, test_labels, 'Soft Margin SVM')
+svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Best SVM')
 
 # ------------------------------------------- #
 # -------------------- G -------------------- #
 # ------------------------------------------- #
+# from sklearn.naive_bayes import MultinomialNB
+# from sklearn.preprocessing import MinMaxScaler
 
+# min_max_scaler = MinMaxScaler()
+# scaled_tfidf = min_max_scaler.fit_transform(transformed_tfidf)
+# scaled_test_tfidf = min_max_scaler.fit_transform(transformed_test_tfidf)
 
-
+# NB = MultinomialNB()
+# NB.fit(scaled_tfidf, train_targets)
+# NBprediction = NB.predict(scaled_test_tfidf)
+# NBaccuracy = np.mean(NBprediction == test_targets)
+# predict_probability = NB.predict_proba(scaled_test_tfidf[:])[:,1]
 
 
 
