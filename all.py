@@ -20,6 +20,8 @@ from sklearn import svm
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 # F
 from sklearn.model_selection import cross_val_score
+# G
+from sklearn.linear_model import LogisticRegression
 
 
 # ------------------------------------------- #
@@ -163,7 +165,7 @@ SVD = TruncatedSVD(n_components=50, random_state=42)
 tfidf_SVD = SVD.fit_transform(tfidf)
 # print tfidf_SVD.shape
 
-NMF = NMF(n_components=50, init='random', random_state=42)
+NMF = NMF(n_components=50, random_state=42)
 tfidf_NMF = NMF.fit_transform(tfidf)
 # print tfidf_NMF.shape
 
@@ -195,7 +197,7 @@ def show_result(score, acc, report, matrix):
     plt.show()
 
 
-def svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, name):
+def svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, name):
     print '============= %s =============' % name
 
     # train model
@@ -228,8 +230,8 @@ tfidf_NMF_test = NMF.fit_transform(test_tfidf)
 # build classifiers
 # hard_classifier = svm.LinearSVC(C=1000, random_state=42)
 # soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
-# show_result(*svm_classify(hard_classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Hard Margin SVM'))
-# show_result(*svm_classify(soft_classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Soft Margin SVM'))
+# show_result(*svm_classify(hard_classifier, tfidf_SVD, tfidf_SVD_test, 'Hard Margin SVM'))
+# show_result(*svm_classify(soft_classifier, tfidf_SVD, tfidf_SVD_test, 'Soft Margin SVM'))
 
 # ------------------------------------------- #
 # -------------------- F -------------------- #
@@ -250,7 +252,7 @@ tfidf_NMF_test = NMF.fit_transform(test_tfidf)
 # print "Best Accuracy: %.5f | gamma: %d" % (best_score, best_gamma)
 
 # classifier = svm.LinearSVC(C=best_gamma, random_state=42)
-# show_result(*svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, train_labels, test_labels, 'Best SVM'))
+# show_result(*svm_classify(classifier, tfidf_SVD, tfidf_SVD_test, 'Best SVM'))
 
 # ------------------------------------------- #
 # -------------------- G -------------------- #
@@ -258,26 +260,56 @@ tfidf_NMF_test = NMF.fit_transform(test_tfidf)
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import MinMaxScaler
 
+def prob_classify(classifier, tfidf_SVD, tfidf_SVD_test, name):
+    print '============= %s =============' % name
+
+    # train model
+    classifier.fit(tfidf_SVD, train_labels)
+
+    # make prediction
+    prediction = classifier.predict(tfidf_SVD_test)
+    prob = classifier.predict_proba(tfidf_SVD_test[:])[:, 1]
+    acc = np.mean(prediction == test_labels)
+    report = classification_report(test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+    matrix = confusion_matrix(test_labels, prediction)
+
+    return prob, acc, report, matrix
+
+
 min_max_scaler = MinMaxScaler()
 scaled_tfidf = min_max_scaler.fit_transform(tfidf_SVD)
 scaled_test_tfidf = min_max_scaler.fit_transform(tfidf_SVD_test)
 
-NB = MultinomialNB()
-NB.fit(scaled_tfidf, train_labels)
-NBprediction = NB.predict(scaled_test_tfidf)
-acc = np.mean(NBprediction == test_labels)
-prob = NB.predict_proba(scaled_test_tfidf[:])[:, 1]
+# nb.fit(scaled_tfidf, train_labels)
+# prediction = nb.predict(scaled_test_tfidf)
+# acc = np.mean(prediction == test_labels)
+# prob = nb.predict_proba(scaled_test_tfidf[:])[:, 1]
 
-# NB = MultinomialNB()
-# NB.fit(tfidf_NMF, train_labels)
-# NBprediction = NB.predict(tfidf_NMF_test)
-# acc = np.mean(NBprediction == test_labels)
-# prob = NB.predict_proba(tfidf_NMF_test[:])[:, 1]
+# nb = MultinomialNB()
+# show_result(*prob_classify(nb, scaled_tfidf, scaled_test_tfidf, 'Naive Beyes Classifier'))
 
-# Report results
-report = classification_report(test_labels, NBprediction, target_names=['Computer technology', 'Recreational activity'])
-matrix = confusion_matrix(test_labels, NBprediction)
+# ------------------------------------------- #
+# -------------------- H -------------------- #
+# ------------------------------------------- #
+# lg = LogisticRegression()
+# show_result(*prob_classify(lg, scaled_tfidf, scaled_test_tfidf, 'Logistic Regression Classifier'))
 
-show_result(prob, acc, report, matrix)
+# ------------------------------------------- #
+# -------------------- I -------------------- #
+# ------------------------------------------- #
+params = [0.001, 0.1, 1, 10, 1000]
+penalties = ['l1', 'l2']
+
+for p in penalties:
+    for c in params:
+        lg = LogisticRegression(C=c, penalty=p)
+        msg = 'Logistic Regression Classifier with c=%s, penalty=%s' % (str(c), p)
+        show_result(*prob_classify(lg, scaled_tfidf, scaled_test_tfidf, msg))
+
+
+
+
+
+
 
 
