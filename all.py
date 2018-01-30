@@ -308,7 +308,33 @@ for p in penalties:
 
 
 
+# ------------------------------------------- #
+# -------------------- J -------------------- #
+# ------------------------------------------- #
+tempCat = ['comp.sys.ibm.pc.hardware','comp.sys.mac.hardware','misc.forsale','soc.religion.christian']
+tempTrain = fetch_data(tempCat, 'train')
+tempTest = fetch_data(tempCat, 'test')
+subtrain = vectorizer_2.fit_transform(tempTrain.data)
+tfidf_subtrain = tfidf_transformer.fit_transform(subtrain)
+transformed_subtfidf = SVD.fit_transform(tfidf_subtrain)
 
+subtest = vectorizer_2.fit_transform(tempTest.data)
+tfidf_subtest = tfidf_transformer.fit_transform(subtest)
+transformed_subtest_tfidf = SVD.fit_transform(tfidf_subtest)
+
+scaled_subtfidf= min_max_scaler.fit_transform(transformed_subtfidf)
+scaled_subtest_tfidf = min_max_scaler.fit_transform(transformed_subtest_tfidf)
+
+
+subNB = MultinomialNB()
+subNB.fit(scaled_subtfidf, subtrain.target)
+subPreiction = subNB.predict(scaled_subtest_tfidf)
+subAcc = np.mean(subNBprediction == subtest.target)
+
+# Report results
+report = classification_report(subtest.target, subPreiction, target_names=tempCat)
+matrix = confusion_matrix(subtest.target, subPreiction)
+show_result(subPreiction, subAcc, report, matrix)
 
 
 
