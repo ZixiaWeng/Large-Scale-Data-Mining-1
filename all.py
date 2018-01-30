@@ -171,6 +171,13 @@ tfidf_NMF = NMF.fit_transform(tfidf)
 # ------------------------------------------- #
 # -------------------- E -------------------- #
 # ------------------------------------------- #
+def build_labels(data):
+    labels = []
+    for i in data.target:
+        labels.append(1) if i >= 4 else labels.append(0)
+    return labels
+
+
 def show_result(score, acc, report, matrix):
     print "Accuracy: %.2f" % acc
     print "Classification Report:"
@@ -209,19 +216,8 @@ train_data = fetch_data(categories, 'train')
 test_data = fetch_data(categories, 'test')
 
 # build training and testing labels
-train_labels = []
-for i in train_data.target:
-    if i >= 4:
-        train_labels.append(1)
-    else:
-        train_labels.append(0)
-
-test_labels = []
-for i in test_data.target:
-    if i >= 4:
-        test_labels.append(1)
-    else:
-        test_labels.append(0)
+train_labels = build_labels(train_data)
+test_labels = build_labels(test_data)
 
 # build testing data
 test_vectors = vectorizer.fit_transform(test_data.data)
@@ -262,15 +258,21 @@ tfidf_NMF_test = NMF.fit_transform(test_tfidf)
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import MinMaxScaler
 
-# min_max_scaler = MinMaxScaler()
-# scaled_tfidf = min_max_scaler.fit_transform(tfidf_SVD)
-# scaled_test_tfidf = min_max_scaler.fit_transform(tfidf_SVD_test)
+min_max_scaler = MinMaxScaler()
+scaled_tfidf = min_max_scaler.fit_transform(tfidf_SVD)
+scaled_test_tfidf = min_max_scaler.fit_transform(tfidf_SVD_test)
 
 NB = MultinomialNB()
-NB.fit(tfidf_NMF, train_labels)
-NBprediction = NB.predict(tfidf_NMF_test)
+NB.fit(scaled_tfidf, train_labels)
+NBprediction = NB.predict(scaled_test_tfidf)
 acc = np.mean(NBprediction == test_labels)
-prob = NB.predict_proba(tfidf_NMF_test[:])[:, 1]
+prob = NB.predict_proba(scaled_test_tfidf[:])[:, 1]
+
+# NB = MultinomialNB()
+# NB.fit(tfidf_NMF, train_labels)
+# NBprediction = NB.predict(tfidf_NMF_test)
+# acc = np.mean(NBprediction == test_labels)
+# prob = NB.predict_proba(tfidf_NMF_test[:])[:, 1]
 
 # Report results
 report = classification_report(test_labels, NBprediction, target_names=['Computer technology', 'Recreational activity'])
