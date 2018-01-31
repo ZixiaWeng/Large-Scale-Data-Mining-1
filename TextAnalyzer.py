@@ -12,6 +12,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 # from sklearn.preprocessing import MinMaxScaler
+from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 
 
 stop_words = text.ENGLISH_STOP_WORDS
@@ -46,6 +47,12 @@ allCat = [
     'talk.politics.mideast',
     'talk.politics.misc',
     'talk.religion.misc'
+]
+cat_4 = [
+    'comp.sys.ibm.pc.hardware',
+    'comp.sys.mac.hardware',
+    'misc.forsale',
+    'soc.religion.christian'
 ]
 
 
@@ -112,8 +119,10 @@ class TextAnalyzer:
 
     def svm_classify(self, classifier, name):
         print '============= %s =============' % name
+
         # train model
         classifier.fit(self.tfidf_SVD, self.train_labels)
+
         # make prediction
         prediction = classifier.predict(self.test_tfidf_SVD)
         score = classifier.decision_function(self.test_tfidf_SVD)
@@ -137,6 +146,18 @@ class TextAnalyzer:
         matrix = confusion_matrix(self.test_labels, prediction)
 
         return prob, acc, report, matrix
+
+    def run_all(self):
+            self.a()
+            self.b()
+            self.c()
+            self.d()
+            self.e()
+            self.f()
+            self.g()
+            self.h()
+            self.i()
+            self.j()
 
     def a(self):
         # count the documents in each category
@@ -227,7 +248,68 @@ class TextAnalyzer:
                 self.show_result(*self.prob_classify(lg, msg))
 
     def j(self):
-        pass
+        train = fetch_data(cat_4, 'train')
+        test = fetch_data(cat_4, 'test')
+
+        vectors = self.to_vec(train.data)
+        tfidf = self.to_tfidf(vectors)
+        nmf = self.to_NMF(tfidf)
+
+        vectors_test = self.vectorizer.transform(test.data)
+        tfidf_test = self.tfidf_transformer.transform(vectors_test)
+        nmf_test = self.nmf.transform(tfidf_test)
+
+        # naive bayes
+        nb = MultinomialNB()
+        nb.fit(nmf, train.target)
+        prediction = nb.predict(nmf_test)
+        acc = np.mean(prediction == test.target)
+
+        # Report results
+        # self.show_result(self, score, acc, report, matrix)
+        print("Accuracy of multinomial naive Bayes: " + str(acc))
+        print("-"*60)
+        print("Classification report: ")
+        print(classification_report(test.target, prediction))
+        print("-"*60)
+        print("Confusion Matrix: ")
+        print(confusion_matrix(test.target, prediction))
+
+        # one vs one
+        m_classifier = svm.LinearSVC( C=1 ,dual=False, random_state=42)
+        ovoclassifier = OneVsOneClassifier(m_classifier)
+        ovoclassifier.fit(nmf, train.target)
+
+        predict_ovo = ovoclassifier.predict(nmf_test)
+        score_ovo = ovoclassifier.decision_function(nmf_test)
+        accuracy_ovo = np.mean(predict_ovo == test.target)
+
+        # Report results
+        print("Accuracy of multiclass SVM classification(One Vs one): " + str(accuracy_ovo))
+        print("-"*60)
+        print("Classification report: ")
+        print(classification_report(test.target, predict_ovo))
+        print("-"*60)
+        print("Confusion Matrix: ")
+        print(confusion_matrix(test.target, predict_ovo))
+
+        # one vs rest
+        m_classifier = svm.LinearSVC( C=1 ,dual=False, random_state=42)
+        ovrclassifier = OneVsRestClassifier(m_classifier)
+        ovrclassifier.fit(nmf, train.target)
+
+        predict_ovr = ovrclassifier.predict(nmf_test)
+        score_ovr = ovrclassifier.decision_function(nmf_test)
+        accuracy_ovr = np.mean(predict_ovr == test.target)
+
+        # Report results
+        print("Accuracy of multiclass SVM classification(One Vs one): " + str(accuracy_ovr))
+        print("-"*60)
+        print("Classification report: ")
+        print(classification_report(test.target, predict_ovr))
+        print("-"*60)
+        print("Confusion Matrix: ")
+        print(confusion_matrix(test.target, predict_ovr))
 
 
 
