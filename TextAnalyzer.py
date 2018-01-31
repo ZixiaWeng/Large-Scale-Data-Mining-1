@@ -142,26 +142,26 @@ class TextAnalyzer:
 
         # make prediction
         prediction = classifier.predict(self.test_tfidf_NMF)
-        prob = classifier.predict_proba(self.test_tfidf_NMF[:])[:, 1]
-        acc = np.mean(prediction == self.test_labels)
-        report = classification_report(self.test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
-        matrix = confusion_matrix(self.test_labels, prediction)
-
-        return prob, acc, report, matrix
-
-    def prob_classify_SVD(self, classifier, name):
-        print '================== %s with SVD ==================' % name
-        # train model
-        classifier.fit(self.tfidf_SVD, self.train_labels)
-
-        # make prediction
-        prediction = classifier.predict(self.test_tfidf_SVD)
-        score = classifier.decision_function(self.test_tfidf_SVD)
+        score = classifier.decision_function(self.test_tfidf_NMF)
         acc = np.mean(prediction == self.test_labels)
         report = classification_report(self.test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
         matrix = confusion_matrix(self.test_labels, prediction)
 
         return score, acc, report, matrix
+
+    def prob_classify_SVD(self, classifier, name):
+        print '================== %s with SVD ==================' % name
+        # train model
+        classifier.fit(self.tfidf_mm, self.train_labels)
+
+        # make prediction
+        prediction = classifier.predict(self.test_tfidf_mm)
+        prob = classifier.predict_proba(self.test_tfidf_mm[:])[:, 1]
+        acc = np.mean(prediction == self.test_labels)
+        report = classification_report(self.test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+        matrix = confusion_matrix(self.test_labels, prediction)
+
+        return prob, acc, report, matrix
 
     def prob_classify_NMF(self, classifier, name):
         print '================== %s with NMF ==================' % name
@@ -253,7 +253,9 @@ class TextAnalyzer:
         hard_classifier = svm.LinearSVC(C=1000, random_state=42)
         soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
         self.show_result(*self.svm_classify_SVD(hard_classifier, 'Hard Margin SVM'))
-        self.show_result(*self.svm_classify_SVD(soft_classifier, 'Soft Margin SVM'))
+        self.show_result(*self.svm_classify_SVD(soft_classifier, 'Soft Margin SVM'))      
+        self.show_result(*self.svm_classify_NMF(hard_classifier, 'Hard Margin SVM'))
+        self.show_result(*self.svm_classify_NMF(soft_classifier, 'Soft Margin SVM'))
 
     def f(self):
         print_question('f')
@@ -275,15 +277,35 @@ class TextAnalyzer:
         classifier = svm.LinearSVC(C=best_gamma, random_state=42)
         self.show_result(*self.svm_classify_SVD(classifier, 'Best SVM'))
 
+        best_score = 0
+        best_gamma = 0
+        for gamma in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+            classifier = svm.LinearSVC(C=gamma, random_state=42)
+            classifier.fit(self.tfidf_NMF, self.train_labels)
+            scores = (cross_val_score(classifier, self.tfidf_NMF, self.train_labels, cv=5))
+            score = scores.mean()
+            if score > best_score:
+                best_score = score
+                best_gamma = gamma
+
+            print "Accuracy: %.5f | gamma: " % score, gamma
+
+        print "Best Accuracy: %.5f | gamma: %d" % (best_score, best_gamma)
+
+        classifier = svm.LinearSVC(C=best_gamma, random_state=42)
+        self.show_result(*self.svm_classify_NMF(classifier, 'Best SVM'))
+
     def g(self):
         print_question('g')
         nb = MultinomialNB()
         self.show_result(*self.prob_classify_NMF(nb, 'Naive Beyes Classifier'))
+        self.show_result(*self.prob_classify_SVD(nb, 'Naive Beyes Classifier'))
 
     def h(self):
         print_question('h')
         lg = LogisticRegression()
         self.show_result(*self.prob_classify_NMF(lg, 'Logistic Regression Classifier'))
+        self.show_result(*self.prob_classify_SVD(lg, 'Logistic Regression Classifier'))
 
     def i(self):
         print_question('i')
@@ -295,6 +317,7 @@ class TextAnalyzer:
                 lg = LogisticRegression(C=c, penalty=p)
                 msg = 'Logistic Regression Classifier with c=%s, penalty=%s' % (str(c), p)
                 self.show_result(*self.prob_classify_NMF(lg, msg))
+                self.show_result(*self.prob_classify_SVD(lg, msg))
 
     def j(self):
         print_question('j')
@@ -318,7 +341,7 @@ class TextAnalyzer:
 
         # train and test
         self.multi_classify(nb, nmf, nmf_test, train.target, test.target, 'naive bayes')
-        self.multi_classify(ovo, nmf, nmf_test, train.target, test.target, 'one vs one')        
+        self.multi_classify(ovo, nmf, nmf_test, train.target, test.target, 'one vs one')      
         self.multi_classify(ovr, nmf, nmf_test, train.target, test.target, 'one vs rest')
 
 
