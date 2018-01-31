@@ -1,17 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from utils import rand_color_arr, stemTokenizer, fetch_data, build_labels, new_line, print_question
 from collections import defaultdict
-from utils import rand_color_arr, stemTokenizer, fetch_data, build_labels, new_line
+from sklearn import svm
 from sklearn.feature_extraction import text
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 from sklearn.decomposition import TruncatedSVD, NMF
-from sklearn import svm
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 from sklearn.model_selection import cross_val_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
-# from sklearn.preprocessing import MinMaxScaler
 from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 
 
@@ -119,7 +118,7 @@ class TextAnalyzer:
             self.plot_ROC(score)
 
     def svm_classify(self, classifier, name, plot=False):
-        print '============= %s =============' % name
+        print '================== %s ==================' % name
         # train model
         classifier.fit(self.tfidf_SVD, self.train_labels)
 
@@ -133,7 +132,7 @@ class TextAnalyzer:
         return score, acc, report, matrix
 
     def prob_classify(self, classifier, name):
-        print '============= %s =============' % name
+        print '================== %s ==================' % name
         # train model
         classifier.fit(self.tfidf_NMF, self.train_labels)
 
@@ -145,6 +144,16 @@ class TextAnalyzer:
         matrix = confusion_matrix(self.test_labels, prediction)
 
         return prob, acc, report, matrix
+
+    def multi_classify(self, classifier, nmf_train, nmf_test, train_labels, test_labels, name):
+        print '================== %s ==================' % name
+        classifier.fit(nmf_train, train_labels)
+
+        prediction = classifier.predict(nmf_test)
+        acc = np.mean(prediction == test_labels)
+        report = classification_report(test_labels, prediction, target_names=cat_4)
+        matrix = confusion_matrix(test_labels, prediction)
+        self.show_result(-1, acc, report, matrix, plot=False)
 
     def run_all(self):
             self.a()
@@ -160,6 +169,7 @@ class TextAnalyzer:
 
     def a(self):
         # count the documents in each category
+        print_question('a')
         count = defaultdict(int)
         for d in self.train_data.target:
             count[d] += 1
@@ -172,12 +182,14 @@ class TextAnalyzer:
         plt.show()
 
     def b(self):
+        print_question('b')
         vectorizer_2 = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
         vectors_2 = vectorizer_2.fit_transform(self.train_data.data)
         print "terms num when mid_df = 2: %d" % vectors_2.shape[1]
         print "terms num when mid_df = 5: %d" % self.vectors.shape[1]
 
     def c(self):
+        print_question('c')
         allDoc = []
         for cat in allCat:
             data = fetch_data([cat], 'train').data
@@ -200,16 +212,19 @@ class TextAnalyzer:
             print allCat[i], words
 
     def d(self):
+        print_question('d')
         print 'SVD shape: %s' % str(self.tfidf_SVD.shape)
         print 'NMF shape: %s' % str(self.tfidf_NMF.shape)
 
     def e(self):
+        print_question('e')
         hard_classifier = svm.LinearSVC(C=1000, random_state=42)
         soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
         self.show_result(*self.svm_classify(hard_classifier, 'Hard Margin SVM'))
         self.show_result(*self.svm_classify(soft_classifier, 'Soft Margin SVM'))
 
     def f(self):
+        print_question('f')
         best_score = 0
         best_gamma = 0
         for gamma in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
@@ -229,14 +244,17 @@ class TextAnalyzer:
         self.show_result(*self.svm_classify(classifier, 'Best SVM'))
 
     def g(self):
+        print_question('g')
         nb = MultinomialNB()
         self.show_result(*self.prob_classify(nb, 'Naive Beyes Classifier'))
 
     def h(self):
+        print_question('h')
         lg = LogisticRegression()
         self.show_result(*self.prob_classify(lg, 'Logistic Regression Classifier'))
 
     def i(self):
+        print_question('i')
         params = [0.001, 0.1, 1, 10, 1000]
         penalties = ['l1', 'l2']
 
@@ -246,17 +264,8 @@ class TextAnalyzer:
                 msg = 'Logistic Regression Classifier with c=%s, penalty=%s' % (str(c), p)
                 self.show_result(*self.prob_classify(lg, msg))
 
-    def multi_classify(self, classifier, nmf_train, nmf_test, train_labels, test_labels, name):
-        print '============= %s =============' % name
-        classifier.fit(nmf_train, train_labels)
-
-        prediction = classifier.predict(nmf_test)
-        acc = np.mean(prediction == test_labels)
-        report = classification_report(test_labels, prediction, target_names=cat_4)
-        matrix = confusion_matrix(test_labels, prediction)
-        self.show_result(-1, acc, report, matrix, plot=False)
-
     def j(self):
+        print_question('j')
         # build training data
         train = fetch_data(cat_4, 'train')
         vectors = self.to_vec(train.data)

@@ -49,4 +49,11 @@ def build_labels(data):
     return labels
 
 
+def print_question(x):
+    print ' '
+    print '=' * 50
+    print '=' * 18 + '  Question %s  ' % str(x) + '=' * 18
+    print '=' * 50
+
+
 
