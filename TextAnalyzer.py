@@ -73,7 +73,7 @@ class TextAnalyzer:
         self.tfidf = self.to_tfidf(self.vectors)
         self.tfidf_SVD = self.to_SVD(self.tfidf)
         self.tfidf_NMF = self.to_NMF(self.tfidf)
-        self.tfidf_mm = self.mm.transform(self.tfidf_SVD)
+        self.tfidf_mm = self.mm.fit_transform(self.tfidf_SVD)
 
         # build testing data
         self.test_data = fetch_data(categories, 'test')
@@ -82,7 +82,7 @@ class TextAnalyzer:
         self.test_tfidf = self.tfidf_transformer.transform(self.test_vectors)
         self.test_tfidf_SVD = self.svd.transform(self.test_tfidf)
         self.test_tfidf_NMF = self.nmf.transform(self.test_tfidf)
-        self.test_tfidf_mm = self.mm.transform(self.test_tfidf_SVD)
+        self.test_tfidf_mm = self.mm.fit_transform(self.test_tfidf_SVD)
         print 'finished building all training and testing data...'
         new_line(50)
         print ' '
