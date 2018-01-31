@@ -109,17 +109,17 @@ class TextAnalyzer:
         plt.axis([0, 1, 0, 1])
         plt.show()
 
-    def show_result(self, score, acc, report, matrix):
+    def show_result(self, score, acc, report, matrix, plot=True):
         print "Accuracy: %.2f" % acc
         print "Classification Report:"
         print report
         print "Confusion Matrix:"
         print matrix
-        self.plot_ROC(score)
+        if plot:
+            self.plot_ROC(score)
 
-    def svm_classify(self, classifier, name):
+    def svm_classify(self, classifier, name, plot=False):
         print '============= %s =============' % name
-
         # train model
         classifier.fit(self.tfidf_SVD, self.train_labels)
 
@@ -134,7 +134,6 @@ class TextAnalyzer:
 
     def prob_classify(self, classifier, name):
         print '============= %s =============' % name
-
         # train model
         classifier.fit(self.tfidf_NMF, self.train_labels)
 
@@ -201,8 +200,8 @@ class TextAnalyzer:
             print allCat[i], words
 
     def d(self):
-        print self.tfidf_SVD.shape
-        print self.tfidf_NMF.shape
+        print 'SVD shape: %s' % str(self.tfidf_SVD.shape)
+        print 'NMF shape: %s' % str(self.tfidf_NMF.shape)
 
     def e(self):
         hard_classifier = svm.LinearSVC(C=1000, random_state=42)
@@ -247,69 +246,40 @@ class TextAnalyzer:
                 msg = 'Logistic Regression Classifier with c=%s, penalty=%s' % (str(c), p)
                 self.show_result(*self.prob_classify(lg, msg))
 
-    def j(self):
-        train = fetch_data(cat_4, 'train')
-        test = fetch_data(cat_4, 'test')
+    def multi_classify(self, classifier, nmf_train, nmf_test, train_labels, test_labels, name):
+        print '============= %s =============' % name
+        classifier.fit(nmf_train, train_labels)
 
+        prediction = classifier.predict(nmf_test)
+        acc = np.mean(prediction == test_labels)
+        report = classification_report(test_labels, prediction, target_names=cat_4)
+        matrix = confusion_matrix(test_labels, prediction)
+        self.show_result(-1, acc, report, matrix, plot=False)
+
+    def j(self):
+        # build training data
+        train = fetch_data(cat_4, 'train')
         vectors = self.to_vec(train.data)
         tfidf = self.to_tfidf(vectors)
         nmf = self.to_NMF(tfidf)
 
+        # build testing data
+        test = fetch_data(cat_4, 'test')
         vectors_test = self.vectorizer.transform(test.data)
         tfidf_test = self.tfidf_transformer.transform(vectors_test)
         nmf_test = self.nmf.transform(tfidf_test)
 
-        # naive bayes
+        # build classifiers
+        svc = svm.LinearSVC(C=1, random_state=42)
         nb = MultinomialNB()
-        nb.fit(nmf, train.target)
-        prediction = nb.predict(nmf_test)
-        acc = np.mean(prediction == test.target)
+        ovo = OneVsOneClassifier(svc)
+        ovr = OneVsRestClassifier(svc)
 
-        # Report results
-        # self.show_result(self, score, acc, report, matrix)
-        print("Accuracy of multinomial naive Bayes: " + str(acc))
-        print("-"*60)
-        print("Classification report: ")
-        print(classification_report(test.target, prediction))
-        print("-"*60)
-        print("Confusion Matrix: ")
-        print(confusion_matrix(test.target, prediction))
+        # train and test
+        self.multi_classify(nb, nmf, nmf_test, train.target, test.target, 'naive bayes')
+        self.multi_classify(ovo, nmf, nmf_test, train.target, test.target, 'one vs one')        
+        self.multi_classify(ovr, nmf, nmf_test, train.target, test.target, 'one vs rest')
 
-        # one vs one
-        m_classifier = svm.LinearSVC( C=1 ,dual=False, random_state=42)
-        ovoclassifier = OneVsOneClassifier(m_classifier)
-        ovoclassifier.fit(nmf, train.target)
-
-        predict_ovo = ovoclassifier.predict(nmf_test)
-        score_ovo = ovoclassifier.decision_function(nmf_test)
-        accuracy_ovo = np.mean(predict_ovo == test.target)
-
-        # Report results
-        print("Accuracy of multiclass SVM classification(One Vs one): " + str(accuracy_ovo))
-        print("-"*60)
-        print("Classification report: ")
-        print(classification_report(test.target, predict_ovo))
-        print("-"*60)
-        print("Confusion Matrix: ")
-        print(confusion_matrix(test.target, predict_ovo))
-
-        # one vs rest
-        m_classifier = svm.LinearSVC( C=1 ,dual=False, random_state=42)
-        ovrclassifier = OneVsRestClassifier(m_classifier)
-        ovrclassifier.fit(nmf, train.target)
-
-        predict_ovr = ovrclassifier.predict(nmf_test)
-        score_ovr = ovrclassifier.decision_function(nmf_test)
-        accuracy_ovr = np.mean(predict_ovr == test.target)
-
-        # Report results
-        print("Accuracy of multiclass SVM classification(One Vs one): " + str(accuracy_ovr))
-        print("-"*60)
-        print("Classification report: ")
-        print(classification_report(test.target, predict_ovr))
-        print("-"*60)
-        print("Confusion Matrix: ")
-        print(confusion_matrix(test.target, predict_ovr))
 
 
 
