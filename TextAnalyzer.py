@@ -1,0 +1,237 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from collections import defaultdict
+from utils import rand_color_arr, stemTokenizer, fetch_data, build_labels, new_line
+from sklearn.feature_extraction import text
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+from sklearn.decomposition import TruncatedSVD, NMF
+from sklearn import svm
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+# from sklearn.preprocessing import MinMaxScaler
+
+
+stop_words = text.ENGLISH_STOP_WORDS
+categories = [
+    'comp.graphics',
+    'comp.os.ms-windows.misc',
+    'comp.sys.ibm.pc.hardware',
+    'comp.sys.mac.hardware',
+    'rec.autos',
+    'rec.motorcycles',
+    'rec.sport.baseball',
+    'rec.sport.hockey'
+]
+allCat = [
+    'comp.sys.ibm.pc.hardware',
+    'comp.sys.mac.hardware',
+    'misc.forsale',
+    'soc.religion.christian',
+    'comp.graphics',
+    'comp.os.ms-windows.misc',
+    'comp.windows.x',
+    'rec.autos',
+    'rec.motorcycles',
+    'rec.sport.baseball',
+    'rec.sport.hockey',
+    'alt.atheism',
+    'sci.crypt',
+    'sci.electronics',
+    'sci.med',
+    'sci.space',
+    'talk.politics.guns',
+    'talk.politics.mideast',
+    'talk.politics.misc',
+    'talk.religion.misc'
+]
+
+
+class TextAnalyzer:
+    def __init__(self):
+        new_line(50)
+        print 'started to build all training and testing data...'
+        self.tfidf_transformer = TfidfTransformer()
+        self.vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=5, tokenizer=stemTokenizer)
+        self.svd = TruncatedSVD(n_components=50, random_state=42)
+        self.nmf = NMF(n_components=50, random_state=42)
+
+        # build training data
+        self.train_data = fetch_data(categories, 'train')
+        self.train_labels = build_labels(self.train_data)
+        self.vectors = self.to_vec(self.train_data.data)
+        self.tfidf = self.to_tfidf(self.vectors)
+        self.tfidf_SVD = self.to_SVD(self.tfidf)
+        self.tfidf_NMF = self.to_NMF(self.tfidf)
+
+        # build testing data
+        self.test_data = fetch_data(categories, 'test')
+        self.test_labels = build_labels(self.test_data)
+        self.test_vectors = self.to_vec(self.test_data.data)
+        self.test_tfidf = self.to_tfidf(self.test_vectors)
+        self.test_tfidf_SVD = self.to_SVD(self.test_tfidf)
+        self.test_tfidf_NMF = self.to_NMF(self.test_tfidf)
+        print 'finished building all training and testing data...'
+        new_line(50)
+        print ' '
+
+    def _transform(self, data, tool):
+        return tool.fit_transform(data)
+
+    def to_tfidf(self, data):
+        return self._transform(data, self.tfidf_transformer)
+
+    def to_vec(self, data):
+        return self._transform(data, self.vectorizer)
+
+    def to_SVD(self, data):
+        return self._transform(data, self.svd)
+
+    def to_NMF(self, data):
+        return self._transform(data, self.nmf)
+
+    def plot_ROC(self, score):
+        fpr, tpr, _ = roc_curve(self.test_labels, score)
+        plt.plot([0, 1], [0, 1])
+        plt.plot(fpr, tpr)
+        plt.ylabel('TPR')
+        plt.xlabel('FPR')
+        plt.title('ROC Curve')
+        plt.axis([0, 1, 0, 1])
+        plt.show()
+
+    def show_result(self, score, acc, report, matrix):
+        print "Accuracy: %.2f" % acc
+        print "Classification Report:"
+        print report
+        print "Confusion Matrix:"
+        print matrix
+        self.plot_ROC(score)
+
+    def svm_classify(self, classifier, name):
+        print '============= %s =============' % name
+        # train model
+        classifier.fit(self.tfidf_SVD, self.train_labels)
+        # make prediction
+        prediction = classifier.predict(self.test_tfidf_SVD)
+        score = classifier.decision_function(self.test_tfidf_SVD)
+        acc = np.mean(prediction == self.test_labels)
+        report = classification_report(self.test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+        matrix = confusion_matrix(self.test_labels, prediction)
+
+        return score, acc, report, matrix
+
+    def prob_classify(self, classifier, name):
+        print '============= %s =============' % name
+
+        # train model
+        classifier.fit(self.tfidf_NMF, self.train_labels)
+
+        # make prediction
+        prediction = classifier.predict(self.test_tfidf_NMF)
+        prob = classifier.predict_proba(self.test_tfidf_NMF[:])[:, 1]
+        acc = np.mean(prediction == self.test_labels)
+        report = classification_report(self.test_labels, prediction, target_names=['Computer technology', 'Recreational activity'])
+        matrix = confusion_matrix(self.test_labels, prediction)
+
+        return prob, acc, report, matrix
+
+    def a(self):
+        # count the documents in each category
+        count = defaultdict(int)
+        for d in self.train_data.target:
+            count[d] += 1
+
+        colors = rand_color_arr(8)
+        plt.barh(self.train_data.target_names, count.values(), alpha=0.8, color=colors)
+        plt.xlabel('Class')
+        plt.ylabel('Number')
+        plt.title('the Number of Documents per Class')
+        plt.show()
+
+    def b(self):
+        vectorizer_2 = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=2, tokenizer=stemTokenizer)
+        vectors_2 = vectorizer_2.fit_transform(self.train_data.data)
+        print "terms num when mid_df = 2: %d" % vectors_2.shape[1]
+        print "terms num when mid_df = 5: %d" % self.vectors.shape[1]
+
+    def c(self):
+        allDoc = []
+        for cat in allCat:
+            data = fetch_data([cat], 'train').data
+            poke = ""
+            for doc in data:
+                poke = poke + " " + doc
+            allDoc.append(poke)
+
+        vectors_full = self.to_vec(allDoc)
+        tficf_train = self.to_tfidf(vectors_full)
+        tficf_train_copy = tficf_train.copy()
+        features = self.vectorizer.get_feature_names()
+        for i in range(4):
+            words = []
+            for j in range(10):
+                doc = tficf_train_copy[i]
+                max_index = np.argmax(doc)
+                words.append(features[max_index])
+                tficf_train_copy[i, max_index] = 0
+            print allCat[i], words
+
+    def d(self):
+        print self.tfidf_SVD.shape
+        print self.tfidf_NMF.shape
+
+    def e(self):
+        hard_classifier = svm.LinearSVC(C=1000, random_state=42)
+        soft_classifier = svm.LinearSVC(C=0.001, random_state=42)
+        self.show_result(*self.svm_classify(hard_classifier, 'Hard Margin SVM'))
+        self.show_result(*self.svm_classify(soft_classifier, 'Soft Margin SVM'))
+
+    def f(self):
+        best_score = 0
+        best_gamma = 0
+        for gamma in [0.001, 0.01, 0.1, 1, 10, 100, 1000]:
+            classifier = svm.LinearSVC(C=gamma, random_state=42)
+            classifier.fit(self.tfidf_SVD, self.train_labels)
+            scores = (cross_val_score(classifier, self.tfidf_SVD, self.train_labels, cv=5))
+            score = scores.mean()
+            if score > best_score:
+                best_score = score
+                best_gamma = gamma
+
+            print "Accuracy: %.5f | gamma: " % score, gamma
+
+        print "Best Accuracy: %.5f | gamma: %d" % (best_score, best_gamma)
+
+        classifier = svm.LinearSVC(C=best_gamma, random_state=42)
+        self.show_result(*self.svm_classify(classifier, 'Best SVM'))
+
+    def g(self):
+        nb = MultinomialNB()
+        self.show_result(*self.prob_classify(nb, 'Naive Beyes Classifier'))
+
+    def h(self):
+        lg = LogisticRegression()
+        self.show_result(*self.prob_classify(lg, 'Logistic Regression Classifier'))
+
+    def i(self):
+        params = [0.001, 0.1, 1, 10, 1000]
+        penalties = ['l1', 'l2']
+
+        for p in penalties:
+            for c in params:
+                lg = LogisticRegression(C=c, penalty=p)
+                msg = 'Logistic Regression Classifier with c=%s, penalty=%s' % (str(c), p)
+                self.show_result(*self.prob_classify(lg, msg))
+
+    def j(self):
+        pass
+
+
+
+
+
+
+
