@@ -2,7 +2,8 @@ from TextAnalyzer import TextAnalyzer
 
 if __name__ == '__main__':
     ta = TextAnalyzer()
-    ta.run_all()
+    # ta.run_all()
+    ta.p2q3()
     # ta.a()
     # ta.b()
     # ta.c()
