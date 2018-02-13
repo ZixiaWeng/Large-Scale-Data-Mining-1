@@ -6,7 +6,6 @@ from collections import defaultdict
 from sklearn import svm
 from sklearn.feature_extraction import text
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD, NMF
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 from sklearn.model_selection import cross_val_score
@@ -14,10 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.cluster import KMeans
-import sklearn.metrics as metrics
-from sklearn.metrics.cluster import homogeneity_score,completeness_score,v_measure_score
-from sklearn.metrics.cluster import adjusted_rand_score,adjusted_mutual_info_score
+
 
 stop_words = text.ENGLISH_STOP_WORDS
 categories = [
@@ -67,11 +63,8 @@ class TextAnalyzer:
         self.tfidf_transformer = TfidfTransformer()
         self.vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=5, tokenizer=stemTokenizer)
         self.svd = TruncatedSVD(n_components=50, random_state=42)
-        self.svdp2 = TruncatedSVD(n_components=1000, random_state=0)
         self.nmf = NMF(n_components=50, random_state=42)
-        self.nmfp2 = NMF(n_components=1000, random_state=0)
         self.mm = MinMaxScaler()
-        self.r = [1, 2, 3, 5, 10, 20, 50, 100, 300]
 
         # build training data
         self.train_data = fetch_data(categories, 'train')
@@ -205,40 +198,6 @@ class TextAnalyzer:
             self.h()
             self.i()
             self.j()
-    def p2q1(self):
-        print_question('1')
-        vectorizer_3 = TfidfVectorizer(analyzer='word', stop_words=stop_words, min_df=3, tokenizer=stemTokenizer)
-        tfidf = vectorizer_3.fit_transform(self.train_data.data)
-        print "dimensions: ", tfidf.shape
-        return tfidf
-
-    def p2q2(self):
-        tfidf = self.p2q1()
-        print_question('2')
-        km = KMeans(n_clusters = 2, n_init = 100, max_iter = 1000) #k = 2
-        km.fit(tfidf)
-        homo_score = metrics.homogeneity_score(self.train_labels, km.labels_)
-        complete_score = metrics.completeness_score(self.train_labels, km.labels_)
-        v_score = metrics.v_measure_score(self.train_labels, km.labels_)
-        rand_score = metrics.adjusted_rand_score(self.train_labels, km.labels_)
-        mutual_info = metrics.adjusted_mutual_info_score(self.train_labels, km.labels_)
-        print("Homogeneity Score: %0.3f" % homo_score) 
-        print("Completeness Score: %0.3f" % complete_score) 
-        print("V-measure: %0.3f" % v_score)
-        print("Adjusted Rand Score: %0.3f" % rand_score)
-        print("Adjusted Mutual Info Score: %0.3f\n" % mutual_info)
-
-    def p2q3(self):
-        tfidf = self.p2q1()
-        svd = self.svdp2
-        svd.fit(tfidf)
-        plt.plot(range(1,1001), svd.explained_variance_ratio_.cumsum().tolist(), label="SVD")
-        plt.xlabel('r value')
-        plt.ylabel('Percent of variance retained')
-        plt.title('Variance retained vs r value for Truncated SVD')
-        plt.show()
-
-        r = self.r
 
 
 
