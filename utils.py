@@ -28,6 +28,13 @@ def stemTokenizer(para):
     return [stemmer.stem(item) for item in temp.split()]
 
 
+def tokenizer(para):
+    temp = "".join([i if ord(i) < 128 else ' ' for i in para])  # remove non-ascii
+    temp = re.sub('[,.-:/()?><{}*$#&]', '', temp)  # remove some special punc
+    temp = "".join(c for c in temp if c not in string.punctuation)
+    return temp.split()
+
+
 def fetch_data(category, subset):
     assert(subset in {'train', 'test'})
     return fetch_20newsgroups(
