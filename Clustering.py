@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from utils import print_question, stemTokenizer, fetch_data, build_labels, new_line
+from utils import print_question, tokenizer, fetch_data, build_labels, new_line
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 from sklearn.cluster import KMeans
 from sklearn.metrics.cluster import homogeneity_score, completeness_score, v_measure_score, adjusted_rand_score, adjusted_mutual_info_score
@@ -58,7 +58,7 @@ def plot_res(data, all_r, name):
 class Clustering:
     def __init__(self):
         self.tfidf_transformer = TfidfTransformer()
-        self.vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=3, tokenizer=stemTokenizer)
+        self.vectorizer = CountVectorizer(analyzer='word', stop_words=stop_words, min_df=3, tokenizer=tokenizer)
         self.svd = TruncatedSVD(n_components=1000, random_state=0)
 
         # build training data
@@ -112,7 +112,7 @@ class Clustering:
 
     def q2(self):
         print_question('2')
-        km = KMeans(n_clusters=2, max_iter=200, n_init=1)
+        km = KMeans(n_clusters=2, max_iter=200, n_init=5)
         km.fit(self.tfidf)
         self.show_result(km.labels_, 'quesiton 2')
 
@@ -132,7 +132,7 @@ class Clustering:
         # compare different r
         nmf_res = []
         svd_res = []
-        all_r = [1, 2, 3, 5, 10, 20, 50, 100]
+        all_r = [1, 2, 3, 5, 10, 20, 50, 100, 300]
         for r in all_r:
             km_svd = KMeans(n_clusters=2, max_iter=100, n_init=3)
             svd = TruncatedSVD(n_components=r, random_state=0)
