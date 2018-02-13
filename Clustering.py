@@ -7,6 +7,8 @@ from sklearn.metrics.cluster import homogeneity_score, completeness_score, v_mea
 from sklearn.decomposition import TruncatedSVD, NMF
 from sklearn.feature_extraction import text
 from sklearn.metrics import confusion_matrix
+from sklearn import preprocessing
+from sklearn.preprocessing import Normalizer
 
 
 stop_words = text.ENGLISH_STOP_WORDS
@@ -67,6 +69,12 @@ class Clustering:
         self.vectors = self.to_vec(self.train_data.data)
         self.tfidf = self.to_tfidf(self.vectors)
 
+        #build clustering required data
+        self.lsip2 = TruncatedSVD(n_components=2, random_state=0)
+        self.lsi_data = self.lsip2.fit_transform(self.tfidf)
+        self.nmfp2 = NMF(n_components=2, init='random', random_state=0)
+        self.nmf_data = self.nmfp2.fit_transform(self.tfidf)
+        
     def _transform(self, data, tool):
         return tool.fit_transform(data)
 
@@ -151,4 +159,39 @@ class Clustering:
 
         plot_res(svd_res, all_r, 'SVD Result')
         plot_res(nmf_res, all_r, 'NMF Result')
+
+    def q4helper(self, data, tag):
+        km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
+        km.fit(data)
+        centers = km.cluster_centers_
+        plt.scatter(data[:,0], data[:,1], c=km.predict(data))
+        plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.title(tag+" visualization")
+        plt.show()
+
+    def q4a(self):
+        self.q4helper(self.lsi_data, "svd")
+        self.q4helper(self.nmf_data, "nmf")
+
+    def q4bhelper(self, data, tag):
+        #Normalize
+        data = preprocessing.scale(data, with_mean = False)
+        # normalizer = Normalizer(copy=False)
+        # lsa = make_pipeline(self.lsip2, normalizer)
+        # data = lsa.fit_transform(self.lsi_data)
+        # lsi_norm = 
+        km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
+        km.fit(data)
+        centers = km.cluster_centers_
+        plt.scatter(data[:,0], data[:,1], c=km.predict(data))
+        plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.title(tag+" visualization with normalization")
+        plt.show()
+    def q4b(self):
+        self.q4bhelper(self.lsi_data, "svd")
+        self.q4bhelper(self.nmf_data, "nmf")
 
