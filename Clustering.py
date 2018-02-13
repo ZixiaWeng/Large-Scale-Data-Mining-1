@@ -9,7 +9,8 @@ from sklearn.feature_extraction import text
 from sklearn.metrics import confusion_matrix
 from sklearn import preprocessing
 from sklearn.preprocessing import Normalizer
-
+from sklearn.preprocessing import FunctionTransformer 
+import numpy as np
 
 stop_words = text.ENGLISH_STOP_WORDS
 categories = [
@@ -74,7 +75,7 @@ class Clustering:
         self.lsi_data = self.lsip2.fit_transform(self.tfidf)
         self.nmfp2 = NMF(n_components=2, init='random', random_state=0)
         self.nmf_data = self.nmfp2.fit_transform(self.tfidf)
-        
+
     def _transform(self, data, tool):
         return tool.fit_transform(data)
 
@@ -175,7 +176,7 @@ class Clustering:
         self.q4helper(self.lsi_data, "svd")
         self.q4helper(self.nmf_data, "nmf")
 
-    def q4bhelper(self, data, tag):
+    def q4b1helper(self, data, tag):
         #Normalize
         data = preprocessing.scale(data, with_mean = False)
         # normalizer = Normalizer(copy=False)
@@ -184,6 +185,7 @@ class Clustering:
         # lsi_norm = 
         km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
         km.fit(data)
+        self.show_result(km.labels_, 'quesiton 4b1 with '+tag)
         centers = km.cluster_centers_
         plt.scatter(data[:,0], data[:,1], c=km.predict(data))
         plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
@@ -191,7 +193,57 @@ class Clustering:
         plt.ylabel("y")
         plt.title(tag+" visualization with normalization")
         plt.show()
-    def q4b(self):
-        self.q4bhelper(self.lsi_data, "svd")
-        self.q4bhelper(self.nmf_data, "nmf")
+    def q4b1(self):
+        self.q4b1helper(self.lsi_data, "svd")
+        self.q4b1helper(self.nmf_data, "nmf")
+
+    def q4b2(self):
+        # Applying a non-linear transformation to the data vectors only after NMF. Here we use logarithm transformation as an example.
+        data_nl_nmf = FunctionTransformer(np.log1p).transform(self.nmf_data)
+        km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
+        km.fit(data_nl_nmf)
+        self.show_result(km.labels_, 'quesiton 4b2 with nmf only')
+        centers = km.cluster_centers_
+        plt.scatter(data_nl_nmf[:,0], data_nl_nmf[:,1], c=km.predict(data_nl_nmf))
+        plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.title("visualization with non-linear transformation for nmf")
+        plt.show()
+    def q4b3(self):
+        #Now try combining both transformations (in different orders) on NMF- reduced data.
+        #1st non-linear and 2nd normalize:
+        data_nl_nmf = FunctionTransformer(np.log1p).transform(self.nmf_data)
+        data_combine = preprocessing.scale(data_nl_nmf, with_mean = False)
+        km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
+        km.fit(data_combine)
+        self.show_result(km.labels_, 'quesiton 4b3 with nmf only part I')
+        centers = km.cluster_centers_
+        plt.scatter(data_combine[:,0], data_combine[:,1], c=km.predict(data_combine))
+        plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.title("Clustering Visualization with both transformation using non-linear first and then normalization")
+        plt.show()
+
+        #1st normalize and 2nd non-linear:
+        data_normalize = preprocessing.scale(self.nmf_data, with_mean = False)
+        data_combine = FunctionTransformer(np.log1p).transform(data_normalize)
+        km = KMeans(n_clusters=2, init='k-means++', max_iter=100, n_init=1)
+        km.fit(data_combine)
+        self.show_result(km.labels_, 'quesiton 4b3 with nmf only part II')
+        centers = km.cluster_centers_
+        plt.scatter(data_combine[:,0], data_combine[:,1], c=km.predict(data_combine))
+        plt.scatter(centers[:,0], centers[:,1], alpha=0.8, c="black") 
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.title("Clustering Visualization with both transformation using normalization first and then non-linear")
+        plt.show()
+
+    def q4(self):
+        self.q4a()
+        self.q4b1()
+        self.q4b2()
+        self.q4b3()
+
 

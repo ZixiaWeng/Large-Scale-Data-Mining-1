@@ -5,4 +5,4 @@ if __name__ == '__main__':
     # cl.q1()
     # cl.q2()
     # cl.q3()
-    cl.q4b()
+    cl.q4()
