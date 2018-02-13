@@ -8,7 +8,10 @@ Type
 
 Make
 
-to run all the code. You will see the details of the output in the stdout.
+to run all the code. You will see the details of the output in the stdout. Note that this will only run the questions from 1-4, for question 5, you should change the "categories" variable in line67: self.train_data = fetch_data(categories, 'train') in Clustering.py to "allCat" and change the  "n_clusters=2" in every km_svd = KMeans(n_clusters=2, max_iter=100, n_init=3) statement to "n_clusters=20", for your convenience, we run the code in advance and put the output in our report. Enjoy!
+
 
 Thank you so much!
 
+Sincerely,
+Zixia and Shunji
