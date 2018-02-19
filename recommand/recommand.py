@@ -7,6 +7,7 @@ from surprise import SVD
 from surprise import Dataset
 from surprise import Reader
 from surprise import KNNBasic
+from surprise import accuracy
 from surprise.model_selection import cross_validate
 from surprise.model_selection import KFold
 from surprise.prediction_algorithms import knns
@@ -73,7 +74,39 @@ class Recommand:
         sim_options = {'name': 'pearson_baseline',
           'shrinkage': 0  # no shrinkage
         }
-        algo = knns.KNNWithMeans(k = 40, sim_options=sim_options)
-        cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
         
+        #Q10
+        '''
+        rmse_by_k = []
+        mae_by_k = []
+        k_values = []
+        for k in range(1, 51):
+            k_values.append(2*k)
+            algo = knns.KNNWithMeans(k = k*2, sim_options=sim_options)
+            #cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
+            kf = KFold(n_splits=10)
+            rmse_by_fold = []
+            mae_by_fold = []
+            for trainset, testset in kf.split(data):
+                algo.fit(trainset)
+                predictions = algo.test(testset)
+                
+                # Compute Root Mean Squared Error
+                rmse_by_fold.append( accuracy.rmse(predictions, verbose=True))
+                # Compute MAE
+                mae_by_fold.append (accuracy.mae(predictions, verbose=True))
+            rmse_by_k.append( numpy.mean(rmse_by_fold))
+            mae_by_k.append( numpy.mean(mae_by_fold))
+              
+        plt.plot( k_values, rmse_by_k)
+        plt.plot( k_values, mae_by_k)
+        plt.legend(['RMSE','MAE'])
+        plt.show()
+        '''
+
+        #Q11
+
+
+
+
 
