@@ -37,20 +37,23 @@ class Recommand:
         # Q2
         plot2_y = numpy.zeros(11)
         for i in range (len(self.ratings['rating'])):
-          plot2_y [  int (self.ratings['rating'][i] / 0.5) ] += 1
+            plot2_y [  int (self.ratings['rating'][i] / 0.5) ] += 1
         plt.bar( range(0,11), plot2_y)
         plt.show()
 
         # Q3
         movie_count = {}
         for i in range (len(self.ratings['rating'])):
-          key = int (self.ratings['movie'][i])
-          if not key in movie_count.keys():
-            movie_count[ self.ratings['movie'][i] ] = 0
-          else:
-            movie_count[ self.ratings['movie'][i] ] += 1
-
-        print movie_count.values()
+            key = int (self.ratings['movie'][i])
+            if not key in movie_count.keys():
+                movie_count[ self.ratings['movie'][i] ] = 0
+            else:
+                movie_count[ self.ratings['movie'][i] ] += 1
+        movie_rats = [(i, movie_count[i]) for i in movie_count]
+        movie_rats = sorted(movie_rats, cmp = lambda x, y: cmp(y[1], x[1]))
+        movie_plot = [i[1] for i in movie_rats]
+        plt.plot(movie_plot)
+        plt.show()
 
 
     def knn(self):  # q7-11
