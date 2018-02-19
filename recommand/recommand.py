@@ -19,9 +19,9 @@ def read_data():
       		ratings['movie'].append( float(line[1]))
         	ratings['rating'].append( float(line[2]))
         	if float(line[0]) not in sparse['user']:
-        		sparse['user'].append( float(line[0]))
+        		sparse['user'].append( float(line[0])) #available users
         	if float(line[1]) not in sparse['movie']:
-        		sparse['movie'].append( float(line[1]))
+        		sparse['movie'].append( float(line[1])) #available movies
 	sparisty = len(ratings['rating'])/(float((len(sparse['user'])) * len(sparse['movie'])))
     return ratings, sparisty
 
@@ -31,9 +31,7 @@ class Recommand:
         self.ratings, self.sparisty = read_data()
 
     def preprocessing(self):  # q1-6
-        # 100004 is the number of available ratings
-        # 671 is the number of users
-        # 9125 is the number of movies
+    	# Q1
         print "Sparisty = " + str(self.sparisty)
 
         # Q2
