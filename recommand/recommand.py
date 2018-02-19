@@ -1,5 +1,6 @@
 import csv
 import numpy
+import pandas as pd
 import matplotlib.pyplot as plt
 
 from surprise import SVD
@@ -65,16 +66,14 @@ class Recommand:
 
     def knn(self):  # q7-11
         filename = 'recommand/ml-latest-small/ratings.csv'
-        reader = Reader(line_format= u'userId,movieId,rating,timestamp', sep=',')
-        data = Dataset.load_from_file(filename, reader=reader )
-        
-        kf = KFold(n_splits=10)
+        reader = Reader()
+        #data = Dataset.load_from_file(filename, reader=reader )
+        df = pd.DataFrame(self.ratings)
+        data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
         sim_options = {'name': 'pearson_baseline',
           'shrinkage': 0  # no shrinkage
-          }
+        }
         algo = knns.KNNWithMeans(k = 40, sim_options=sim_options)
+        cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
+        
 
-        for trainset, testset in kf.split(data):
-            algo.fit(trainset)
-            predictions = algo.test(testset)
-            accuracy.rmse(predictions, verbose=True)
