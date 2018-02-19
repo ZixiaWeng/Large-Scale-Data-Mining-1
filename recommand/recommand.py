@@ -2,6 +2,13 @@ import csv
 import numpy
 import matplotlib.pyplot as plt
 
+from surprise import SVD
+from surprise import Dataset
+from surprise import Reader
+from surprise import KNNBasic
+from surprise.model_selection import cross_validate
+from surprise.model_selection import KFold
+from surprise.prediction_algorithms import knns
 
 def read_data():
     # Loading Ratings.csv
@@ -22,7 +29,7 @@ def read_data():
         		sparse['user'].append( float(line[0])) #available users
         	if float(line[1]) not in sparse['movie']:
         		sparse['movie'].append( float(line[1])) #available movies
-	sparisty = len(ratings['rating'])/(float((len(sparse['user'])) * len(sparse['movie'])))
+    sparisty = len(ratings['rating'])/(float((len(sparse['user'])) * len(sparse['movie'])))
     return ratings, sparisty
 
 
@@ -31,7 +38,7 @@ class Recommand:
         self.ratings, self.sparisty = read_data()
 
     def preprocessing(self):  # q1-6
-    	# Q1
+    	  # Q1
         print "Sparisty = " + str(self.sparisty)
 
         # Q2
@@ -93,8 +100,17 @@ class Recommand:
         '''
           
     def knn(self):  # q7-11
-        pass
+        filename = 'recommand/ml-latest-small/ratings.csv'
+        reader = Reader(line_format= u'userId,movieId,rating,timestamp', sep=',')
+        data = Dataset.load_from_file(filename, reader=reader )
+        
+        kf = KFold(n_splits=10)
+        sim_options = {'name': 'pearson_baseline',
+          'shrinkage': 0  # no shrinkage
+          }
+        algo = knns.KNNWithMeans(k = 40, sim_options=sim_options)
 
-
-
-
+        for trainset, testset in kf.split(data):
+            algo.fit(trainset)
+            predictions = algo.test(testset)
+            accuracy.rmse(predictions, verbose=True)
