@@ -5,15 +5,11 @@ import matplotlib.pyplot as plt
 
 def read_data():
     # Loading Ratings.csv
-    available_rats = 100004
     ratings = {}
     sparse = {}
-    ratings['user'] = []
-    ratings['movie'] = []
+    ratings['user'], sparse['user'] = [],[]
+    ratings['movie'], sparse['movie'] = [],[]
     ratings['rating'] = []
-    sparse['user'] = []
-    sparse['movie'] = []
-    sparse['rating'] = []
     filename = 'recommand/ml-latest-small/ratings.csv'
     with open (filename , "rt") as input:
       	reader = csv.reader(input, delimiter=',', quoting=csv.QUOTE_NONE)
@@ -26,9 +22,7 @@ def read_data():
         		sparse['user'].append( float(line[0]))
         	if float(line[1]) not in sparse['movie']:
         		sparse['movie'].append( float(line[1]))
-        	if float(line[2]) not in sparse['rating']:
-	        	sparse['rating'].append( float(line[2]))
-	sparisty = float(available_rats)/float((len(sparse['user'])) * len(sparse['movie']))
+	sparisty = len(ratings['rating'])/(float((len(sparse['user'])) * len(sparse['movie'])))
     return ratings, sparisty
 
 
