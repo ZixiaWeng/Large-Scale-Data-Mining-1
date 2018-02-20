@@ -254,6 +254,35 @@ class Recommand:
         plt.legend(['RMSE', 'MAE'])
         plt.show()
         
+        # Q14
+        rmse_by_k = []
+        mae_by_k = []
+        k_values = []
+        for k in range(1, 51):
+            k_values.append(2*k)
+            algo = knns.KNNWithMeans(k=k*2, sim_options=sim_options)
+            # cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
+            kf = KFold(n_splits=10)
+            rmse_by_fold = []
+            mae_by_fold = []
+            for trainset, testset in kf.split(data):
+                algo.fit(trainset)
+                trimmed_testset_unpopular = self.trimHighVariance(testset, 2)
+                print len(testset)
+                print len(trimmed_testset_unpopular)
+                predictions = algo.test(trimmed_testset_unpopular)
+                # Compute Root Mean Squared Error
+                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
+                # Compute MAE
+                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
+            rmse_by_k.append(np.mean(rmse_by_fold))
+            mae_by_k.append(np.mean(mae_by_fold))
+            
+        plt.plot(k_values, rmse_by_k)
+        plt.plot(k_values, mae_by_k)
+        plt.legend(['RMSE', 'MAE'])
+        plt.show()
+        
     def trimPopular(self, testset, threshold):
         df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
         counts = df_testset['movieId'].value_counts()
@@ -265,3 +294,18 @@ class Recommand:
         counts = df_testset['movieId'].value_counts()
         df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts <= threshold].index)]
         return df_trimmed_testset.values.tolist()
+
+    def trimHighVariance(self, testset, minVariance):
+        # print testset, len(testset)
+        testset = self.trimPopular(testset, 5)
+        dic = {}
+        for (userID, movieID, rating) in dic:
+            if (movieID in dic):
+                dic[movieID].append(rating)
+            else:
+                dic[movieID] = [rating]
+        for movieID in dic:
+            if numpy.var(numpy.array(dic[movieID])) < minVariance:
+                testset = filter(lambda x: x[1] != movieID, testset)
+        return testset
+
