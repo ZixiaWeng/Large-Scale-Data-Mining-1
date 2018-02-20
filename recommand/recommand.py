@@ -10,7 +10,10 @@ from surprise import Dataset
 from surprise import Reader
 from surprise import accuracy
 from surprise.model_selection import KFold
+from surprise.model_selection import train_test_split
 from surprise.prediction_algorithms import knns
+from surprise.prediction_algorithms import matrix_factorization
+
 
 
 def plot_freqency(d, msg=None):
@@ -163,9 +166,9 @@ class Recommand:
         rmse_by_k = []
         mae_by_k = []
         k_values = []
-        for k in range(1, 101, step_size):
-            k_values.append(2*k)
-            algo = knns.KNNWithMeans(k=k, sim_options=sim_options)
+        for k in range(4, 101, step_size):
+            k_values.append(k/2)
+            algo = knns.KNNWithMeans(k=k/2, sim_options=sim_options)
             kf = KFold(n_splits=folds)
             rmse_by_fold = []
             mae_by_fold = []
@@ -221,5 +224,42 @@ class Recommand:
             if np.var(np.array(testset[movieID])) < minVariance:
                 testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
         return testsetTemp
+            
+    def NMF_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
+        rmse_by_k = []
+        mae_by_k = []
+        k_values = []
+        for k in range(4, 101, step_size):
+            k_values.append(k/2)
+            algo = matrix_factorization.NMF(n_factors = k/2, biased= False)
+            kf = KFold(n_splits=folds)
+            rmse_by_fold = []
+            mae_by_fold = []
+            for trainset, testset in kf.split(self.data):
+                algo.fit(trainset)
+                if test_filter:
+                    testset = test_filter(testset, threshold)
+                predictions = algo.test(testset)
+                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
+                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
+            rmse_by_k.append(np.mean(rmse_by_fold))
+            mae_by_k.append(np.mean(mae_by_fold))
+        
+        plt.plot(k_values, rmse_by_k)
+        plt.plot(k_values, mae_by_k)
+        plt.legend(['RMSE', 'MAE'])
+        plt.title(msg)
+        plt.show()
 
+    def NMF(self):
+        reader = Reader()
+        ratings, sparisty = read_data()
+        df = pd.DataFrame(ratings)
+        self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
+        
+        # Q17, 19, 20, 21
+        self.NMF_run(msg='not trimed')
+        self.NMF_run(test_filter=self.trimPopular, msg='trimPopular')
+        self.NMF_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
+        self.NMF_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
 
