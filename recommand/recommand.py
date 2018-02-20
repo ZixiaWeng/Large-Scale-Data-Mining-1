@@ -191,10 +191,11 @@ class Recommand:
         df = pd.DataFrame(self.ratings)
         self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
 
-        # Q10, 12, 13
+        # Q10, 12, 13, 14
         self.knn_run(msg='not trimed')
         self.knn_run(test_filter=self.trimPopular, msg='trimPopular')
         self.knn_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
+        self.knn_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
 
     def trimPopular(self, testset, threshold):
         df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
@@ -207,3 +208,18 @@ class Recommand:
         counts = df_testset['movieId'].value_counts()
         df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts <= threshold].index)]
         return df_trimmed_testset.values.tolist()
+
+    def trimHighVariance(self, testset, minVariance):
+        # print testset, len(testset)
+        testset = self.trimPopular(testset, 5)
+        dic = {}
+        for (userID, movieID, rating) in dic:
+            if (movieID in dic):
+                dic[movieID].append(rating)
+            else:
+                dic[movieID] = [rating]
+        for movieID in dic:
+            if np.var(np.array(dic[movieID])) < minVariance:
+                testset = filter(lambda x: x[1] != movieID, testset)
+        return testset
+
