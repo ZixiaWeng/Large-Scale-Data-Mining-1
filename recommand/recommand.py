@@ -218,7 +218,7 @@ class Recommand:
             else:
                 testset[movieID] = [rating]
         for movieID in testset:
-            if numpy.var(numpy.array(testset[movieID])) < minVariance:
+            if np.var(np.array(testset[movieID])) < minVariance:
                 testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
         return testsetTemp
 
