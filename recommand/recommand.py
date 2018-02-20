@@ -6,12 +6,9 @@ from collections import defaultdict
 import pprint as pp
 import operator
 
-from surprise import SVD
 from surprise import Dataset
 from surprise import Reader
-from surprise import KNNBasic
 from surprise import accuracy
-from surprise.model_selection import cross_validate
 from surprise.model_selection import KFold
 from surprise.prediction_algorithms import knns
 
@@ -38,7 +35,7 @@ def read_data():
     filename = 'recommand/ml-latest-small/ratings.csv'
     with open(filename, "rt") as input:
         reader = csv.reader(input, delimiter=',', quoting=csv.QUOTE_NONE)
-        next(reader, None) # skip header
+        next(reader, None)  # skip header
         for line in reader:
             ratings['user'].append(float(line[0]))
             ratings['movie'].append(float(line[1]))
@@ -157,65 +154,27 @@ class Recommand:
         # plt.plot(movie_plot)
         # plt.show()
 
-    def knn(self):  # q7-11
-        filename = 'recommand/ml-latest-small/ratings.csv'
-        reader = Reader()
-        # data = Dataset.load_from_file(filename, reader=reader )
-        df = pd.DataFrame(self.ratings)
-        data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
+    def knn_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
         sim_options = {
             'name': 'pearson_baseline',
             'shrinkage': 0  # no shrinkage
         }
 
-        # Q10
         rmse_by_k = []
         mae_by_k = []
         k_values = []
-        for k in range(1, 51):
+        for k in range(1, 101, step_size):
             k_values.append(2*k)
-            algo = knns.KNNWithMeans(k=k*2, sim_options=sim_options)
-            # cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
-            kf = KFold(n_splits=10)
+            algo = knns.KNNWithMeans(k=k, sim_options=sim_options)
+            kf = KFold(n_splits=folds)
             rmse_by_fold = []
             mae_by_fold = []
-            for trainset, testset in kf.split(data):
+            for trainset, testset in kf.split(self.data):
                 algo.fit(trainset)
+                if test_filter:
+                    testset = test_filter(testset, threshold)
                 predictions = algo.test(testset)
-                
-                # Compute Root Mean Squared Error
                 rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-                # Compute MAE
-                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
-            rmse_by_k.append(np.mean(rmse_by_fold))
-            mae_by_k.append(np.mean(mae_by_fold))
-              
-        plt.plot(k_values, rmse_by_k)
-        plt.plot(k_values, mae_by_k)
-        plt.legend(['RMSE', 'MAE'])
-        plt.show()
-        
-        # Q11
-        # Read plot of Q10
-
-        # Q12
-        rmse_by_k = []
-        mae_by_k = []
-        k_values = []
-        for k in range(1, 51):
-            k_values.append(2*k)
-            algo = knns.KNNWithMeans(k=k*2, sim_options=sim_options)
-            # cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
-            kf = KFold(n_splits=10)
-            rmse_by_fold = []
-            mae_by_fold = []
-            for trainset, testset in kf.split(data):
-                algo.fit(trainset)
-                trimmed_testset_popular = self.trimPopular(testset, 2)
-                predictions = algo.test(trimmed_testset_popular)
-                # Compute Root Mean Squared Error
-                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-                # Compute MAE
                 mae_by_fold.append(accuracy.mae(predictions, verbose=True))
             rmse_by_k.append(np.mean(rmse_by_fold))
             mae_by_k.append(np.mean(mae_by_fold))
@@ -223,37 +182,20 @@ class Recommand:
         plt.plot(k_values, rmse_by_k)
         plt.plot(k_values, mae_by_k)
         plt.legend(['RMSE', 'MAE'])
+        plt.title(msg)
         plt.show()
-                
-        # Q13
-        rmse_by_k = []
-        mae_by_k = []
-        k_values = []
-        for k in range(1, 51):
-            k_values.append(2*k)
-            algo = knns.KNNWithMeans(k=k*2, sim_options=sim_options)
-            # cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=10, verbose=True)
-            kf = KFold(n_splits=10)
-            rmse_by_fold = []
-            mae_by_fold = []
-            for trainset, testset in kf.split(data):
-                algo.fit(trainset)
-                trimmed_testset_unpopular = self.trimUnpopular(testset, 2)
-                print len(testset)
-                print len(trimmed_testset_unpopular)
-                predictions = algo.test(trimmed_testset_unpopular)
-                # Compute Root Mean Squared Error
-                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-                # Compute MAE
-                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
-            rmse_by_k.append(np.mean(rmse_by_fold))
-            mae_by_k.append(np.mean(mae_by_fold))
-            
-        plt.plot(k_values, rmse_by_k)
-        plt.plot(k_values, mae_by_k)
-        plt.legend(['RMSE', 'MAE'])
-        plt.show()
-        
+
+    def knn(self):  # q7-11
+        reader = Reader()
+        # data = Dataset.load_from_file(filename, reader=reader )
+        df = pd.DataFrame(self.ratings)
+        self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
+
+        # Q10, 12, 13
+        self.knn_run(msg='not trimed')
+        self.knn_run(test_filter=self.trimPopular, msg='trimPopular')
+        self.knn_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
+
     def trimPopular(self, testset, threshold):
         df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
         counts = df_testset['movieId'].value_counts()
