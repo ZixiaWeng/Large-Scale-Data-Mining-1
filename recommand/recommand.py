@@ -13,7 +13,8 @@ from surprise.model_selection import KFold
 from surprise.model_selection import train_test_split
 from surprise.prediction_algorithms import knns
 from surprise.prediction_algorithms import matrix_factorization
-
+from sklearn.metrics import roc_curve
+from sklearn.metrics import auc
 
 
 def plot_freqency(d, msg=None):
@@ -195,11 +196,44 @@ class Recommand:
         self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
 
         # Q10, 12, 13, 14
-        self.knn_run(msg='not trimed')
-        self.knn_run(test_filter=self.trimPopular, msg='trimPopular')
-        self.knn_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
-        self.knn_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
+        # self.knn_run(msg='not trimed')
+        # self.knn_run(test_filter=self.trimPopular, msg='trimPopular')
+        # self.knn_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
+        # self.knn_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
 
+        #Q15
+        trainset, testset = train_test_split(self.data, test_size=0.1)
+        threshold = [2.5,3.0,3.5,4.0]
+        knn = knns.KNNWithMeans(k = 20, sim_options = {
+            'name': 'pearson_baseline',
+            'shrinkage': 0  # no shrinkage
+        })
+        knn.fit(trainset)
+        pred = knn.test(testset)
+        print "pred:",pred
+        trueValue, scoreValue = [],[]
+        for x in pred:
+            trueValue.append(x[2]) #r_ui
+            scoreValue.append(x[3]) #est
+
+        for th in threshold:
+            realValue = map(lambda x : 0 if x < th else 1, trueValue)
+            # realValue = trueValue
+            # for i in range(len(trueValue)):
+            #     if trueValue[i]<th:
+            #         realValue[i] = 0
+            #     else:
+            #         realValue[i] = 1
+            # print realValue,scoreValue
+            fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
+            roc_auc = auc(fpr, tpr)
+            plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
+            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+            plt.xlabel('FPR')
+            plt.ylabel('TPR')
+            plt.title('ROC with threshold = ' + str(th))
+            plt.legend(loc="lower right")
+            plt.show()
     def trimPopular(self, testset, threshold):
         df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
         counts = df_testset['movieId'].value_counts()
@@ -225,7 +259,7 @@ class Recommand:
             if np.var(np.array(dic[movieID])) < minVariance:
                 testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
         return testsetTemp
-        
+
     def NMF_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
         rmse_by_k = []
         mae_by_k = []
