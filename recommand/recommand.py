@@ -211,15 +211,15 @@ class Recommand:
 
     def trimHighVariance(self, testset, minVariance):
         # print testset, len(testset)
-        testset = self.trimPopular(testset, 5)
-        dic = {}
-        for (userID, movieID, rating) in dic:
-            if (movieID in dic):
-                dic[movieID].append(rating)
+        testsetTemp = self.trimPopular(testset, 5)
+        for (userID, movieID, rating) in testset:
+            if (movieID in testset):
+                testset[movieID].append(rating)
             else:
-                dic[movieID] = [rating]
-        for movieID in dic:
-            if np.var(np.array(dic[movieID])) < minVariance:
-                testset = filter(lambda x: x[1] != movieID, testset)
-        return testset
+                testset[movieID] = [rating]
+        for movieID in testset:
+            if numpy.var(numpy.array(testset[movieID])) < minVariance:
+                testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
+        return testsetTemp
+
 
