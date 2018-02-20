@@ -213,18 +213,19 @@ class Recommand:
         return df_trimmed_testset.values.tolist()
 
     def trimHighVariance(self, testset, minVariance):
-        # print testset, len(testset)
+        # print type(testset), len(testset)
         testsetTemp = self.trimPopular(testset, 5)
-        for (userID, movieID, rating) in testset:
-            if (movieID in testset):
-                testset[movieID].append(rating)
+        dic = {}
+        for (userID, movieID, rating) in testsetTemp:
+            if (movieID in dic):
+                dic[movieID].append(rating)
             else:
-                testset[movieID] = [rating]
-        for movieID in testset:
-            if np.var(np.array(testset[movieID])) < minVariance:
+                dic[movieID] = [rating]
+        for movieID in dic:
+            if np.var(np.array(dic[movieID])) < minVariance:
                 testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
         return testsetTemp
-            
+        
     def NMF_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
         rmse_by_k = []
         mae_by_k = []
