@@ -293,10 +293,34 @@ class Recommand:
         self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
         
         # Q17, 19, 20, 21
-        self.NMF_run(msg='not trimed')
-        self.NMF_run(test_filter=self.trimPopular, msg='trimPopular')
-        self.NMF_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
-        self.NMF_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
+        # self.NMF_run(msg='not trimed')
+        # self.NMF_run(test_filter=self.trimPopular, msg='trimPopular')
+        # self.NMF_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
+        # self.NMF_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
+
+        # Q22
+        trainset, testset = train_test_split(self.data, test_size=0.1)
+        threshold = [2.5,3.0,3.5,4.0]
+        nmf = matrix_factorization.NMF(20, biased= False)
+        nmf.fit(trainset)
+        pred = nmf.test(testset)
+        print "pred:",pred
+        trueValue, scoreValue = [],[]
+        for x in pred:
+            trueValue.append(x[2]) #r_ui
+            scoreValue.append(x[3]) #est
+
+        for th in threshold:
+            realValue = map(lambda x : 0 if x < th else 1, trueValue)
+            fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
+            roc_auc = auc(fpr, tpr)
+            plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
+            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+            plt.xlabel('FPR')
+            plt.ylabel('TPR')
+            plt.title('ROC with threshold = ' + str(th))
+            plt.legend(loc="lower right")
+            plt.show()
 
     def non_negative_matrix_factorization(self):
         factorization_model = NMF(n_components=20, init='nndsvda', random_state=0)
