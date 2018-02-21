@@ -298,3 +298,9 @@ class Recommand:
         self.NMF_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
         self.NMF_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
 
+    def non_negative_matrix_factorization(self):
+        factorization_model = NMF(n_components=20, init='nndsvda', random_state=0)
+        U = factorization_model.fit_transform(self.ratings_matrix)
+        V = factorization_model.components_
+        print U
+        print V
