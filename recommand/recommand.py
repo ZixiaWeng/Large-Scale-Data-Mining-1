@@ -29,6 +29,35 @@ def plot_bar(arr, msg=None):
     plt.show()
 
 
+def trimPopular(testset, threshold):
+    df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
+    counts = df_testset['movieId'].value_counts()
+    df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts >= threshold].index)]
+    return df_trimmed_testset.values.tolist()
+
+
+def trimUnpopular(testset, threshold):
+    df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
+    counts = df_testset['movieId'].value_counts()
+    df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts <= threshold].index)]
+    return df_trimmed_testset.values.tolist()
+
+
+def trimHighVariance(testset, minVariance):
+    # print type(testset), len(testset)
+    testsetTemp = trimPopular(testset, 5)
+    dic = {}
+    for (userID, movieID, rating) in testsetTemp:
+        if (movieID in dic):
+            dic[movieID].append(rating)
+        else:
+            dic[movieID] = [rating]
+    for movieID in dic:
+        if np.var(np.array(dic[movieID])) < minVariance:
+            testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  # (userID, movieID, rating), x[1] is movieID
+    return testsetTemp
+
+
 def read_data():
     # Loading Ratings.csv
     ratings = {}
@@ -52,9 +81,15 @@ def read_data():
     return ratings, sparisty
 
 
+def read_csv_data(path):
+    reader = Reader()
+    df = pd.read_csv(path)
+    return Dataset.load_from_df(df[['userId', 'movieId', 'rating']], reader)
+
+
 class Recommand:
     def __init__(self):
-        self.get_data_matrix()
+        self.data = read_csv_data('recommand/ml-latest-small/ratings.csv')
 
     def get_data_matrix(self):
         max_user_id = -1
@@ -158,169 +193,79 @@ class Recommand:
         # plt.plot(movie_plot)
         # plt.show()
 
-    def knn_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
+    def run_with_diff_k(self, algo, args, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
+        rmse_by_k = []
+        mae_by_k = []
+        k_values = []
+        for k in range(4, 101, step_size):
+            k_values.append(k/2)
+            args.update({'n_factors': k/2})
+            modal = algo(**args)
+            kf = KFold(n_splits=folds)
+            rmse_by_fold = []
+            mae_by_fold = []
+            for trainset, testset in kf.split(self.data):
+                modal.fit(trainset)
+                if test_filter:
+                    testset = test_filter(testset, threshold)
+                predictions = modal.test(testset)
+                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
+                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
+            rmse_by_k.append(np.mean(rmse_by_fold))
+            mae_by_k.append(np.mean(mae_by_fold))
+        
+        plt.plot(k_values, rmse_by_k)
+        plt.plot(k_values, mae_by_k)
+        plt.legend(['RMSE', 'MAE'])
+        plt.title(msg)
+        plt.show()
+
+    def run_and_test_model(self, algo, algo_args, model, msg=None):
+        # Q17, 19, 20, 21
+        self.run_with_diff_k(algo, algo_args, msg='not trimed %s' % msg)
+        self.run_with_diff_k(algo, algo_args, test_filter=trimPopular, msg='trimPopular %s' % msg)
+        self.run_with_diff_k(algo, algo_args, test_filter=trimUnpopular, msg='trimUnpopular %s' % msg)
+        self.run_with_diff_k(algo, algo_args, test_filter=trimHighVariance, msg='trimHighVariance %s' % msg)
+
+        # Q22
+        trainset, testset = train_test_split(self.data, test_size=0.1)
+        threshold = [2.5, 3.0, 3.5, 4.0]
+        model.fit(trainset)
+        pred = model.test(testset)
+        # print "pred:", pred
+        trueValue, scoreValue = [], []
+        for x in pred:
+            trueValue.append(x[2])  # r_ui
+            scoreValue.append(x[3])  # est
+
+        for th in threshold:
+            realValue = map(lambda x: 0 if x < th else 1, trueValue)
+            fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
+            roc_auc = auc(fpr, tpr)
+            plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
+            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+            plt.xlabel('FPR')
+            plt.ylabel('TPR')
+            plt.title('ROC with threshold = ' + str(th))
+            plt.legend(loc="lower right")
+            plt.show()
+
+    def run_and_test_all_models(self):
+        # KNN
         sim_options = {
             'name': 'pearson_baseline',
             'shrinkage': 0  # no shrinkage
         }
+        algo = knns.KNNWithMeans
+        args = {'sim_options': sim_options}
+        model = knns.KNNWithMeans(k=20, sim_options=sim_options)
+        self.run_and_test_model(algo, args, model, 'KNN')
 
-        rmse_by_k = []
-        mae_by_k = []
-        k_values = []
-        for k in range(4, 101, step_size):
-            k_values.append(k/2)
-            algo = knns.KNNWithMeans(k=k/2, sim_options=sim_options)
-            kf = KFold(n_splits=folds)
-            rmse_by_fold = []
-            mae_by_fold = []
-            for trainset, testset in kf.split(self.data):
-                algo.fit(trainset)
-                if test_filter:
-                    testset = test_filter(testset, threshold)
-                predictions = algo.test(testset)
-                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
-            rmse_by_k.append(np.mean(rmse_by_fold))
-            mae_by_k.append(np.mean(mae_by_fold))
-
-        plt.plot(k_values, rmse_by_k)
-        plt.plot(k_values, mae_by_k)
-        plt.legend(['RMSE', 'MAE'])
-        plt.title(msg)
-        plt.show()
-
-    def knn(self):  # q7-11
-        reader = Reader()
-        # data = Dataset.load_from_file(filename, reader=reader )
-        df = pd.DataFrame(self.ratings)
-        self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
-
-        # Q10, 12, 13, 14
-        # self.knn_run(msg='not trimed')
-        # self.knn_run(test_filter=self.trimPopular, msg='trimPopular')
-        # self.knn_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
-        # self.knn_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
-
-        #Q15
-        trainset, testset = train_test_split(self.data, test_size=0.1)
-        threshold = [2.5,3.0,3.5,4.0]
-        knn = knns.KNNWithMeans(k = 20, sim_options = {
-            'name': 'pearson_baseline',
-            'shrinkage': 0  # no shrinkage
-        })
-        knn.fit(trainset)
-        pred = knn.test(testset)
-        print "pred:",pred
-        trueValue, scoreValue = [],[]
-        for x in pred:
-            trueValue.append(x[2]) #r_ui
-            scoreValue.append(x[3]) #est
-
-        for th in threshold:
-            realValue = map(lambda x : 0 if x < th else 1, trueValue)
-            # realValue = trueValue
-            # for i in range(len(trueValue)):
-            #     if trueValue[i]<th:
-            #         realValue[i] = 0
-            #     else:
-            #         realValue[i] = 1
-            # print realValue,scoreValue
-            fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
-            roc_auc = auc(fpr, tpr)
-            plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
-            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
-            plt.xlabel('FPR')
-            plt.ylabel('TPR')
-            plt.title('ROC with threshold = ' + str(th))
-            plt.legend(loc="lower right")
-            plt.show()
-    def trimPopular(self, testset, threshold):
-        df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
-        counts = df_testset['movieId'].value_counts()
-        df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts >= threshold].index)]
-        return df_trimmed_testset.values.tolist()
-
-    def trimUnpopular(self, testset, threshold):
-        df_testset = pd.DataFrame(testset, columns=['userId', 'movieId', 'rating'])
-        counts = df_testset['movieId'].value_counts()
-        df_trimmed_testset = df_testset[df_testset['movieId'].isin(counts[counts <= threshold].index)]
-        return df_trimmed_testset.values.tolist()
-
-    def trimHighVariance(self, testset, minVariance):
-        # print type(testset), len(testset)
-        testsetTemp = self.trimPopular(testset, 5)
-        dic = {}
-        for (userID, movieID, rating) in testsetTemp:
-            if (movieID in dic):
-                dic[movieID].append(rating)
-            else:
-                dic[movieID] = [rating]
-        for movieID in dic:
-            if np.var(np.array(dic[movieID])) < minVariance:
-                testsetTemp = filter(lambda x: x[1] != movieID, testsetTemp)  #(userID, movieID, rating), x[1] is movieID
-        return testsetTemp
-
-    def NMF_run(self, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
-        rmse_by_k = []
-        mae_by_k = []
-        k_values = []
-        for k in range(4, 101, step_size):
-            k_values.append(k/2)
-            algo = matrix_factorization.NMF(n_factors = k/2, biased= False)
-            kf = KFold(n_splits=folds)
-            rmse_by_fold = []
-            mae_by_fold = []
-            for trainset, testset in kf.split(self.data):
-                algo.fit(trainset)
-                if test_filter:
-                    testset = test_filter(testset, threshold)
-                predictions = algo.test(testset)
-                rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-                mae_by_fold.append(accuracy.mae(predictions, verbose=True))
-            rmse_by_k.append(np.mean(rmse_by_fold))
-            mae_by_k.append(np.mean(mae_by_fold))
-        
-        plt.plot(k_values, rmse_by_k)
-        plt.plot(k_values, mae_by_k)
-        plt.legend(['RMSE', 'MAE'])
-        plt.title(msg)
-        plt.show()
-
-    def NMF(self):
-        reader = Reader()
-        ratings, sparisty = read_data()
-        df = pd.DataFrame(ratings)
-        self.data = Dataset.load_from_df(df[['user', 'movie', 'rating']], reader)
-        
-        # Q17, 19, 20, 21
-        # self.NMF_run(msg='not trimed')
-        # self.NMF_run(test_filter=self.trimPopular, msg='trimPopular')
-        # self.NMF_run(test_filter=self.trimUnpopular, msg='trimUnpopular')
-        # self.NMF_run(test_filter=self.trimHighVariance, msg='trimHighVariance')
-
-        # Q22
-        trainset, testset = train_test_split(self.data, test_size=0.1)
-        threshold = [2.5,3.0,3.5,4.0]
-        nmf = matrix_factorization.NMF(20, biased= False)
-        nmf.fit(trainset)
-        pred = nmf.test(testset)
-        print "pred:",pred
-        trueValue, scoreValue = [],[]
-        for x in pred:
-            trueValue.append(x[2]) #r_ui
-            scoreValue.append(x[3]) #est
-
-        for th in threshold:
-            realValue = map(lambda x : 0 if x < th else 1, trueValue)
-            fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
-            roc_auc = auc(fpr, tpr)
-            plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
-            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
-            plt.xlabel('FPR')
-            plt.ylabel('TPR')
-            plt.title('ROC with threshold = ' + str(th))
-            plt.legend(loc="lower right")
-            plt.show()
+        # NMF
+        algo = matrix_factorization.NMF
+        args = {'biased': False}
+        model = matrix_factorization.NMF(20, biased=False)
+        self.run_and_test_model(algo, args, model, 'NMF')
 
     def non_negative_matrix_factorization(self):
         factorization_model = NMF(n_components=20, init='nndsvda', random_state=0)
