@@ -15,7 +15,7 @@ from surprise.prediction_algorithms import knns
 from surprise.prediction_algorithms import matrix_factorization
 from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
-
+from surprise.prediction_algorithms.matrix_factorization import SVD
 
 def plot_freqency(d, msg=None):
     sorted_ = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
@@ -196,7 +196,8 @@ class Recommand:
     def run_with_diff_k(self, algo, args, range_, folds=2, test_filter=None, threshold=2, msg=None, modal_name=None):
         arg_name = {
             'KNN': 'k',
-            'NMF': 'n_factors'
+            'NMF': 'n_factors',
+            'SVD': 'n_factors'
         }[modal_name]
 
         rmse_by_k = []
@@ -270,6 +271,12 @@ class Recommand:
         args = {'biased': False}
         best_model = matrix_factorization.NMF(n_factors=20, biased=False)
         self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
+
+        # SVD
+        algo = matrix_factorization.SVD
+        args = {}
+        best_model = SVD(20)
+        self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
 
     def non_negative_matrix_factorization(self):
         factorization_model = NMF(n_components=20, init='nndsvda', random_state=0)
