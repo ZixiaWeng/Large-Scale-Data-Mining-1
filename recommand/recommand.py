@@ -194,13 +194,18 @@ class Recommand:
         # plt.plot(movie_plot)
         # plt.show()
 
-    def run_with_diff_k(self, algo, args, folds=2, step_size=20, test_filter=None, threshold=2, msg=None):
+    def run_with_diff_k(self, algo, args, range_, folds=2, test_filter=None, threshold=2, msg=None, modal_name=None):
+        arg_name = {
+            'KNN': 'k',
+            'NMF': 'n_factors'
+        }[modal_name]
+
         rmse_by_k = []
         mae_by_k = []
         k_values = []
-        for k in range(4, 101, step_size):
-            k_values.append(k/2)
-            args.update({'n_factors': k/2})
+        for k in range(*range_):
+            k_values.append(k)
+            args.update({arg_name: k})
             modal = algo(**args)
             kf = KFold(n_splits=folds)
             rmse_by_fold = []
@@ -221,19 +226,16 @@ class Recommand:
         plt.title(msg)
         plt.show()
 
-    def run_and_test_model(self, algo, algo_args, model, msg=None):
-        # Q17, 19, 20, 21
-        self.run_with_diff_k(algo, algo_args, msg='not trimed %s' % msg)
-        self.run_with_diff_k(algo, algo_args, test_filter=trimPopular, msg='trimPopular %s' % msg)
-        self.run_with_diff_k(algo, algo_args, test_filter=trimUnpopular, msg='trimUnpopular %s' % msg)
-        self.run_with_diff_k(algo, algo_args, test_filter=trimHighVariance, msg='trimHighVariance %s' % msg)
+    def run_and_test_model(self, algo, algo_args, model, range_, modal_name=None):
+        self.run_with_diff_k(algo, algo_args, range_, test_filter=None, msg='not trimed %s' % modal_name, modal_name=modal_name)
+        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimPopular, msg='trimPopular %s' % modal_name, modal_name=modal_name)
+        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimUnpopular, msg='trimUnpopular %s' % modal_name, modal_name=modal_name)
+        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimHighVariance, msg='trimHighVariance %s' % modal_name, modal_name=modal_name)
 
-        # Q22
         trainset, testset = train_test_split(self.data, test_size=0.1)
         threshold = [2.5, 3.0, 3.5, 4.0]
         model.fit(trainset)
         pred = model.test(testset)
-        # print "pred:", pred
         trueValue, scoreValue = [], []
         for x in pred:
             trueValue.append(x[2])  # r_ui
@@ -252,6 +254,8 @@ class Recommand:
             plt.show()
 
     def run_and_test_all_models(self):
+        step_size = 9
+
         # KNN
         sim_options = {
             'name': 'pearson_baseline',
@@ -259,14 +263,14 @@ class Recommand:
         }
         algo = knns.KNNWithMeans
         args = {'sim_options': sim_options}
-        model = knns.KNNWithMeans(k=20, sim_options=sim_options)
-        self.run_and_test_model(algo, args, model, 'KNN')
+        best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
+        self.run_and_test_model(algo, args, best_model, (2, 101, step_size), 'KNN')
 
         # NMF
         algo = matrix_factorization.NMF
         args = {'biased': False}
-        model = matrix_factorization.NMF(20, biased=False)
-        self.run_and_test_model(algo, args, model, 'NMF')
+        best_model = matrix_factorization.NMF(n_factors=20, biased=False)
+        self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
 
     def non_negative_matrix_factorization(self):
         algo = matrix_factorization.NMF(20)
