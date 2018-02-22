@@ -9,6 +9,7 @@ import operator
 from surprise import Dataset
 from surprise import Reader
 from surprise import accuracy
+from surprise import AlgoBase
 from surprise.model_selection import KFold
 from surprise.model_selection import train_test_split
 from surprise.prediction_algorithms import knns
@@ -86,6 +87,33 @@ def read_csv_data(path):
     #df = pd.read_csv(path)
     return Dataset.load_from_file(path, reader)
 
+class NaiveFiltering(AlgoBase): 
+    #https://github.com/jdhurwitz/UCLA-EE219/blob/master/Project3/project3.ipynb
+
+    def __init__(self):
+
+        # Always call base method before doing anything.
+        AlgoBase.__init__(self)
+
+    def fit(self, trainset):
+
+        # Here again: call base method before doing anything.
+        AlgoBase.fit(self, trainset)
+
+        self.movie_rating = defaultdict(list)
+        for (user, _, rating) in self.trainset.all_ratings():
+            self.movie_rating[user].append(rating)
+
+        for user in self.movie_rating:
+            self.movie_rating[user] = np.mean(self.movie_rating[user])
+
+        print self.movie_rating
+
+        return self
+
+    def estimate(self, u, i):
+
+        return self.movie_rating[u]
 
 class Recommand:
     def __init__(self):
@@ -220,7 +248,7 @@ class Recommand:
                 mae_by_fold.append(accuracy.mae(predictions, verbose=True))
             rmse_by_k.append(np.mean(rmse_by_fold))
             mae_by_k.append(np.mean(mae_by_fold))
-        
+   
         plt.plot(k_values, rmse_by_k)
         plt.plot(k_values, mae_by_k)
         plt.legend(['RMSE', 'MAE'])
@@ -258,26 +286,42 @@ class Recommand:
         step_size = 9
 
         # KNN
-        sim_options = {
-            'name': 'pearson_baseline',
-            'shrinkage': 0  # no shrinkage
-        }
-        algo = knns.KNNWithMeans
-        args = {'sim_options': sim_options}
-        best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
-        self.run_and_test_model(algo, args, best_model, (2, 101, step_size), 'KNN')
+        # sim_options = {
+        #     'name': 'pearson_baseline',
+        #     'shrinkage': 0  # no shrinkage
+        # }
+        # algo = knns.KNNWithMeans
+        # args = {'sim_options': sim_options}
+        # best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
+        # self.run_and_test_model(algo, args, best_model, (2, 101, step_size), 'KNN')
 
-        # NMF
-        algo = matrix_factorization.NMF
-        args = {'biased': False}
-        best_model = matrix_factorization.NMF(n_factors=20, biased=False)
-        self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
+        # # NMF
+        # algo = matrix_factorization.NMF
+        # args = {'biased': False}
+        # best_model = matrix_factorization.NMF(n_factors=20, biased=False)
+        # self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
 
-        # SVD
-        algo = matrix_factorization.SVD
-        args = {}
-        best_model = SVD(20)
-        self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
+        # # SVD
+        # algo = matrix_factorization.SVD
+        # args = {}
+        # best_model = SVD(20)
+        # self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
+
+        # NaiveFilter
+        model = NaiveFiltering()
+        kf = KFold(n_splits=2)
+        rmse_by_fold = []
+        mae_by_fold = []
+        for trainset, testset in kf.split(self.data):
+            model.fit(trainset)
+            # if test_filter:
+            #     testset = test_filter(testset, threshold)
+            predictions = model.test(testset)
+            rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
+            mae_by_fold.append(accuracy.mae(predictions, verbose=True))
+
+        print np.mean(rmse_by_fold)
+        print np.mean(mae_by_fold)
 
     def non_negative_matrix_factorization(self):
         algo = matrix_factorization.NMF(20)
