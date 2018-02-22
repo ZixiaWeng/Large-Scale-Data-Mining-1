@@ -82,15 +82,16 @@ def read_data():
 
 
 def read_csv_data(path):
-    reader = Reader()
-    df = pd.read_csv(path)
-    return Dataset.load_from_df(df[['userId', 'movieId', 'rating']], reader)
+    reader = Reader(line_format = 'user item rating timestamp', sep=',', skip_lines=1)
+    #df = pd.read_csv(path)
+    return Dataset.load_from_file(path, reader)
 
 
 class Recommand:
     def __init__(self):
         self.data = read_csv_data('recommand/ml-latest-small/ratings.csv')
-
+        self.get_data_matrix()
+    
     def get_data_matrix(self):
         max_user_id = -1
         max_movie_id = -1
@@ -279,8 +280,24 @@ class Recommand:
         self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
 
     def non_negative_matrix_factorization(self):
-        factorization_model = NMF(n_components=20, init='nndsvda', random_state=0)
-        U = factorization_model.fit_transform(self.ratings_matrix)
-        V = factorization_model.components_
-        print U
-        print V
+        algo = matrix_factorization.NMF(20)
+        model = algo.fit(self.data.build_full_trainset())
+        U = model.pu
+        V = model.qi
+        print U.shape
+        print V.shape
+        
+        top_ten = V[:, 1].argsort()[::-1][:10]
+
+        movies={}
+        genre=[]
+        f = open('recommand/ml-latest-small/movies.csv')
+        movies_reader = csv.reader(f)
+        for movie_entry in movies_reader:
+            movies[movie_entry[0]] = movie_entry[2]
+        f.close()
+        for i in top_ten:
+            for j in movies: 
+                if j!="movieId" and int(i) == int(j): 
+                    genre.append( [i,movies[j]])
+        print (genre)
