@@ -7,4 +7,5 @@ if __name__ == '__main__':
     # r.knn()
     # r.NMF()
     # r.run_and_test_all_models()
-    r.non_negative_matrix_factorization()
+    # r.non_negative_matrix_factorization()
+    r.recommand_by_kNN()
