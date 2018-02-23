@@ -439,4 +439,5 @@ class Recommand:
         plt.plot(t_values, recall_svd, label='recall_svd')
         plt.xlabel('t_value')
         plt.ylabel('percent')
+        plt.legend(loc="best")
         plt.show()
