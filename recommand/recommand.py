@@ -18,6 +18,7 @@ from sklearn.metrics import roc_curve
 from sklearn.metrics import auc
 from surprise.prediction_algorithms.matrix_factorization import SVD
 
+
 def plot_freqency(d, msg=None):
     sorted_ = sorted(d.items(), key=operator.itemgetter(1), reverse=True)
     ids, ratings = zip(*sorted_)
@@ -27,6 +28,20 @@ def plot_freqency(d, msg=None):
 def plot_bar(arr, msg=None):
     plt.bar(np.arange(len(arr)), arr)
     plt.title(msg)
+    plt.show()
+
+
+def plot_precision_and_recall(t_values, precisions_by_t, recall_by_t, msg):
+    plt.plot(t_values, precisions_by_t)
+    plt.title('%s precisions' % msg)
+    plt.show()
+
+    plt.plot(t_values, recall_by_t)
+    plt.title('%s recall' % msg)
+    plt.show()
+
+    plt.plot(recall_by_t, precisions_by_t)
+    plt.title('%s precisions VS recall' % msg)
     plt.show()
 
 
@@ -83,20 +98,18 @@ def read_data():
 
 
 def read_csv_data(path):
-    reader = Reader(line_format = 'user item rating timestamp', sep=',', skip_lines=1)
-    #df = pd.read_csv(path)
+    reader = Reader(line_format='user item rating timestamp', sep=',', skip_lines=1)
+    # df = pd.read_csv(path)
     return Dataset.load_from_file(path, reader)
 
-class NaiveFiltering(AlgoBase): 
-    #https://github.com/jdhurwitz/UCLA-EE219/blob/master/Project3/project3.ipynb
 
+class NaiveFiltering(AlgoBase):
+    # https://github.com/jdhurwitz/UCLA-EE219/blob/master/Project3/project3.ipynb
     def __init__(self):
-
         # Always call base method before doing anything.
         AlgoBase.__init__(self)
 
     def fit(self, trainset):
-
         # Here again: call base method before doing anything.
         AlgoBase.fit(self, trainset)
 
@@ -108,18 +121,17 @@ class NaiveFiltering(AlgoBase):
             self.movie_rating[user] = np.mean(self.movie_rating[user])
 
         # print self.movie_rating
-
         return self
 
     def estimate(self, u, i):
-
         return self.movie_rating[u]
+
 
 class Recommand:
     def __init__(self):
         self.data = read_csv_data('recommand/ml-latest-small/ratings.csv')
         self.get_data_matrix()
-    
+
     def get_data_matrix(self):
         max_user_id = -1
         max_movie_id = -1
@@ -330,7 +342,6 @@ class Recommand:
         self.run_naive_filter(test_filter=trimPopular, msg='trimPopular')
         self.run_naive_filter(test_filter=trimUnpopular, msg='trimUnpopular')
         self.run_naive_filter(test_filter=trimHighVariance, msg='trimHighVariance')
-        
 
     def non_negative_matrix_factorization(self):
         algo = matrix_factorization.NMF(20)
@@ -339,85 +350,93 @@ class Recommand:
         V = model.qi
         print U.shape
         print V.shape
-        
+
         top_ten = V[:, 1].argsort()[::-1][:10]
 
-        movies={}
-        genre=[]
+        movies = {}
+        genre = []
         f = open('recommand/ml-latest-small/movies.csv')
         movies_reader = csv.reader(f)
         for movie_entry in movies_reader:
             movies[movie_entry[0]] = movie_entry[2]
         f.close()
         for i in top_ten:
-            for j in movies: 
-                if j!="movieId" and int(i) == int(j): 
-                    genre.append( [i,movies[j]])
+            for j in movies:
+                if j != "movieId" and int(i) == int(j):
+                    genre.append([i, movies[j]])
         print (genre)
 
-    def evaluate_pred(self, predictions, t): 
+    def evaluate_pred(self, predictions, t):
         predictions_by_user = {}
         for prediction in predictions:
             uid = prediction[0]
             movieid = prediction[1]
             rating = prediction[2]
             estimated_rating = prediction[3]
-            if not uid in predictions_by_user.keys(): 
+            if uid not in predictions_by_user.keys():
                 predictions_by_user[uid] = []
             predictions_by_user[uid].append([movieid, rating, estimated_rating])
 
         precisons_by_user = []
         recall_by_user = []
-        for ratings_by_user in predictions_by_user.values(): 
-            if len(ratings_by_user) < t: 
+        for ratings_by_user in predictions_by_user.values():
+            if len(ratings_by_user) < t:
                 continue
-            ratings_by_user.sort(key = lambda x: x[2])
+            ratings_by_user.sort(key=lambda x: x[2])
             s_count = t
             g_count = 0
             s_intersect_g_count = 0
-            for i in range(len(ratings_by_user)): 
-                if ratings_by_user[i][1] > 2.5: 
+            for i in range(len(ratings_by_user)):
+                if ratings_by_user[i][1] > 2.5:
                     g_count += 1
-                    if i < t: 
-                        s_intersect_g_count+= 1
-            if not g_count == 0: 
-                precisons_by_user.append (float(s_intersect_g_count) / s_count)
-                recall_by_user.append (float(s_intersect_g_count) / g_count)
+                    if i < t:
+                        s_intersect_g_count += 1
+            if not g_count == 0:
+                precisons_by_user.append(float(s_intersect_g_count) / s_count)
+                recall_by_user.append(float(s_intersect_g_count) / g_count)
         return np.mean(precisons_by_user), np.mean(recall_by_user)
 
-
-
-    def test_with_t_and_k(self, best_model):
+    def test_with_t_and_k(self, best_model, folds=2, msg=None):
         precisions_by_t = []
         recall_by_t = []
         t_values = []
-        for t in range(1,26, 2): 
+        for t in range(1, 26, 6):
             t_values.append(t)
-            kf = KFold(n_splits=10)
+            kf = KFold(n_splits=folds)
             precisions_by_fold = []
             recall_by_fold = []
-            for trainset, testset in kf.split(self.data): 
+            for trainset, testset in kf.split(self.data):
                 best_model.fit(trainset)
                 predictions = best_model.test(testset)
                 precision, recall = self.evaluate_pred(predictions, t)
                 precisions_by_fold.append(precision)
                 recall_by_fold.append(recall)
-            precisions_by_t.append ( np.mean(precisions_by_fold))
-            recall_by_t.append (np.mean(recall_by_fold))
+            precisions_by_t.append(np.mean(precisions_by_fold))
+            recall_by_t.append(np.mean(recall_by_fold))
 
+        plot_precision_and_recall(t_values, precisions_by_t, recall_by_t, msg)
+        return t_values, precisions_by_t, recall_by_t
 
-    def recommand_by_kNN(self):
+    def recommand(self):
         sim_options = {
             'name': 'pearson_baseline',
             'shrinkage': 0  # no shrinkage
         }
         best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
-        self.test_with_t_and_k(best_model)
+        t_values, precisions_knn, recall_knn = self.test_with_t_and_k(best_model, msg='KNN')
 
-    def recommand_by_NNMF(self):
         best_model = matrix_factorization.NMF(n_factors=20, biased=False)
-        self.test_with_t_and_k(best_model)
+        t_values, precisions_nmf, recall_nmf = self.test_with_t_and_k(best_model, msg='NMF')
 
-    def recommand_by_MF(self):
         best_model = SVD(20)
-        self.test_with_t_and_k(best_model)
+        t_values, precisions_svd, recall_svd = self.test_with_t_and_k(best_model, msg='SVD')
+
+        plt.plot(t_values, precisions_knn, label='precisions_knn')
+        plt.plot(t_values, precisions_nmf, label='precisions_nmf')
+        plt.plot(t_values, precisions_svd, label='precisions_svd')
+        plt.plot(t_values, recall_knn, label='recall_knn')
+        plt.plot(t_values, recall_nmf, label='recall_nmf')
+        plt.plot(t_values, recall_svd, label='recall_svd')
+        plt.xlabel('t_value')
+        plt.ylabel('percent')
+        plt.show()
