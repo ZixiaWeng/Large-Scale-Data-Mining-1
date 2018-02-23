@@ -107,7 +107,7 @@ class NaiveFiltering(AlgoBase):
         for user in self.movie_rating:
             self.movie_rating[user] = np.mean(self.movie_rating[user])
 
-        print self.movie_rating
+        # print self.movie_rating
 
         return self
 
@@ -282,6 +282,24 @@ class Recommand:
             plt.legend(loc="lower right")
             plt.show()
 
+    def run_naive_filter(self, folds=2, test_filter=None, threshold=2, msg=None):
+        model = NaiveFiltering()
+        kf = KFold(n_splits=folds)
+        rmse_by_fold = []
+        mae_by_fold = []
+        for trainset, testset in kf.split(self.data):
+            model.fit(trainset)
+            if test_filter:
+                testset = test_filter(testset, threshold)
+            predictions = model.test(testset)
+            print predictions
+            rmse_by_fold.append(accuracy.rmse(predictions))
+            mae_by_fold.append(accuracy.mae(predictions))
+
+        print '%s naive filter: ' % msg
+        print 'rmse: %.3f' % np.mean(rmse_by_fold)
+        print 'mae: %.3f' % np.mean(mae_by_fold)
+
     def run_and_test_all_models(self):
         step_size = 9
 
@@ -308,20 +326,11 @@ class Recommand:
         # self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
 
         # NaiveFilter
-        model = NaiveFiltering()
-        kf = KFold(n_splits=2)
-        rmse_by_fold = []
-        mae_by_fold = []
-        for trainset, testset in kf.split(self.data):
-            model.fit(trainset)
-            # if test_filter:
-            #     testset = test_filter(testset, threshold)
-            predictions = model.test(testset)
-            rmse_by_fold.append(accuracy.rmse(predictions, verbose=True))
-            mae_by_fold.append(accuracy.mae(predictions, verbose=True))
-
-        print np.mean(rmse_by_fold)
-        print np.mean(mae_by_fold)
+        self.run_naive_filter(msg='normal')
+        self.run_naive_filter(test_filter=trimPopular, msg='trimPopular')
+        self.run_naive_filter(test_filter=trimUnpopular, msg='trimUnpopular')
+        self.run_naive_filter(test_filter=trimHighVariance, msg='trimHighVariance')
+        
 
     def non_negative_matrix_factorization(self):
         algo = matrix_factorization.NMF(20)
