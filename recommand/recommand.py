@@ -388,7 +388,6 @@ class Recommand:
             precisions_by_fold = []
             recall_by_fold = []
             for trainset, testset in kf.split(self.data): 
-                best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
                 best_model.fit(trainset)
                 predictions = best_model.test(testset)
                 precision, recall = self.evaluate_pred(predictions, t)
@@ -396,6 +395,7 @@ class Recommand:
                 recall_by_fold.append(recall)
             precisions_by_t.append ( np.mean(precisions_by_fold))
             recall_by_t.append (np.mean(recall_by_fold))
+
 
     def recommand_by_kNN(self):
         sim_options = {
