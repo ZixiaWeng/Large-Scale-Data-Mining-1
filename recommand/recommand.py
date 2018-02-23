@@ -354,3 +354,70 @@ class Recommand:
                 if j!="movieId" and int(i) == int(j): 
                     genre.append( [i,movies[j]])
         print (genre)
+
+    def evaluate_pred(self, predictions, t): 
+        predictions_by_user = {}
+        for prediction in predictions:
+            uid = prediction[0]
+            movieid = prediction[1]
+            rating = prediction[2]
+            estimated_rating = prediction[3]
+            if not uid in predictions_by_user.keys(): 
+                predictions_by_user[uid] = []
+            predictions_by_user[uid].append([movieid, rating, estimated_rating])
+
+        precisons_by_user = []
+        recall_by_user = []
+        for ratings_by_user in predictions_by_user.values(): 
+            if len(ratings_by_user) < t: 
+                continue
+            ratings_by_user.sort(key = lambda x: x[2])
+            s_count = t
+            g_count = 0
+            s_intersect_g_count = 0
+            for i in range(len(ratings_by_user)): 
+                if ratings_by_user[i][1] > 2.5: 
+                    g_count += 1
+                    if i < t: 
+                        s_intersect_g_count+= 1
+            if not g_count == 0: 
+                precisons_by_user.append (float(s_intersect_g_count) / s_count)
+                recall_by_user.append (float(s_intersect_g_count) / g_count)
+        return np.mean(precisons_by_user), np.mean(recall_by_user)
+
+
+
+    def test_with_t_and_k(self, best_model):
+        precisions_by_t = []
+        recall_by_t = []
+        t_values = []
+        for t in range(1,26, 2): 
+            t_values.append(t)
+            kf = KFold(n_splits=10)
+            precisions_by_fold = []
+            recall_by_fold = []
+            for trainset, testset in kf.split(self.data): 
+                best_model.fit(trainset)
+                predictions = best_model.test(testset)
+                precision, recall = self.evaluate_pred(predictions, t)
+                precisions_by_fold.append(precision)
+                recall_by_fold.append(recall)
+            precisions_by_t.append ( np.mean(precisions_by_fold))
+            recall_by_t.append (np.mean(recall_by_fold))
+
+
+    def recommand_by_kNN(self):
+        sim_options = {
+            'name': 'pearson_baseline',
+            'shrinkage': 0  # no shrinkage
+        }
+        best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
+        self.test_with_t_and_k(best_model)
+
+    def recommand_by_NNMF(self):
+        best_model = matrix_factorization.NMF(n_factors=20, biased=False)
+        self.test_with_t_and_k(best_model)
+
+    def recommand_by_MF(self):
+        best_model = SVD(20)
+        self.test_with_t_and_k(best_model)
