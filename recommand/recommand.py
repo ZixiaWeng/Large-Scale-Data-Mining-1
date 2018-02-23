@@ -268,10 +268,10 @@ class Recommand:
         plt.show()
 
     def run_and_test_model(self, algo, algo_args, model, range_, modal_name=None):
-        self.run_with_diff_k(algo, algo_args, range_, test_filter=None, msg='not trimed %s' % modal_name, modal_name=modal_name)
-        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimPopular, msg='trimPopular %s' % modal_name, modal_name=modal_name)
-        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimUnpopular, msg='trimUnpopular %s' % modal_name, modal_name=modal_name)
-        self.run_with_diff_k(algo, algo_args, range_, test_filter=trimHighVariance, msg='trimHighVariance %s' % modal_name, modal_name=modal_name)
+        # self.run_with_diff_k(algo, algo_args, range_, test_filter=None, msg='not trimed %s' % modal_name, modal_name=modal_name)
+        # self.run_with_diff_k(algo, algo_args, range_, test_filter=trimPopular, msg='trimPopular %s' % modal_name, modal_name=modal_name)
+        # self.run_with_diff_k(algo, algo_args, range_, test_filter=trimUnpopular, msg='trimUnpopular %s' % modal_name, modal_name=modal_name)
+        # self.run_with_diff_k(algo, algo_args, range_, test_filter=trimHighVariance, msg='trimHighVariance %s' % modal_name, modal_name=modal_name)
 
         trainset, testset = train_test_split(self.data, test_size=0.1)
         threshold = [2.5, 3.0, 3.5, 4.0]
@@ -282,10 +282,12 @@ class Recommand:
             trueValue.append(x[2])  # r_ui
             scoreValue.append(x[3])  # est
 
+        all_roc_auc = []
         for th in threshold:
             realValue = map(lambda x: 0 if x < th else 1, trueValue)
             fpr, tpr, thresholds = roc_curve(realValue, scoreValue)
             roc_auc = auc(fpr, tpr)
+            all_roc_auc.append((fpr, tpr))
             plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
             plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
             plt.xlabel('FPR')
@@ -294,7 +296,9 @@ class Recommand:
             plt.legend(loc="lower right")
             plt.show()
 
-    def run_naive_filter(self, folds=2, test_filter=None, threshold=2, msg=None):
+        return all_roc_auc
+
+    def run_naive_filter(self, folds=5, test_filter=None, threshold=2, msg=None):
         model = NaiveFiltering()
         kf = KFold(n_splits=folds)
         rmse_by_fold = []
@@ -313,29 +317,40 @@ class Recommand:
         print 'mae: %.3f' % np.mean(mae_by_fold)
 
     def run_and_test_all_models(self):
-        step_size = 9
+        step_size = 2
 
         # KNN
-        # sim_options = {
-        #     'name': 'pearson_baseline',
-        #     'shrinkage': 0  # no shrinkage
-        # }
-        # algo = knns.KNNWithMeans
-        # args = {'sim_options': sim_options}
-        # best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
-        # self.run_and_test_model(algo, args, best_model, (2, 101, step_size), 'KNN')
+        sim_options = {
+            'name': 'pearson_baseline',
+            'shrinkage': 0  # no shrinkage
+        }
+        algo = knns.KNNWithMeans
+        args = {'sim_options': sim_options}
+        best_model = knns.KNNWithMeans(k=20, sim_options=sim_options)
+        roc_auc_KNN = self.run_and_test_model(algo, args, best_model, (2, 101, step_size), 'KNN')
 
         # # NMF
-        # algo = matrix_factorization.NMF
-        # args = {'biased': False}
-        # best_model = matrix_factorization.NMF(n_factors=20, biased=False)
-        # self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
+        algo = matrix_factorization.NMF
+        args = {'biased': False}
+        best_model = matrix_factorization.NMF(n_factors=20, biased=False)
+        roc_auc_NMF = self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'NMF')
 
-        # # SVD
-        # algo = matrix_factorization.SVD
-        # args = {}
-        # best_model = SVD(20)
-        # self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
+        # SVD
+        algo = matrix_factorization.SVD
+        args = {}
+        best_model = SVD(20)
+        roc_auc_SVD = self.run_and_test_model(algo, args, best_model, (2, 51, step_size), 'SVD')
+
+        # all
+        for i in range(len(roc_auc_KNN)):
+            plt.plot(roc_auc_KNN[i][0], roc_auc_KNN[i][1], color='blue', linewidth=2.0, label='KNN')
+            plt.plot(roc_auc_NMF[i][0], roc_auc_NMF[i][1], color='blue', linewidth=2.0, label='NMF')
+            plt.plot(roc_auc_SVD[i][0], roc_auc_SVD[i][1], color='blue', linewidth=2.0, label='SVD')
+            plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+            plt.xlabel('FPR')
+            plt.ylabel('TPR')
+            plt.legend(loc="lower right")
+            plt.show()
 
         # NaiveFilter
         self.run_naive_filter(msg='normal')
@@ -396,11 +411,12 @@ class Recommand:
                 recall_by_user.append(float(s_intersect_g_count) / g_count)
         return np.mean(precisons_by_user), np.mean(recall_by_user)
 
-    def test_with_t_and_k(self, best_model, folds=2, msg=None):
+    def test_with_t_and_k(self, best_model, folds=3, msg=None):
         precisions_by_t = []
         recall_by_t = []
         t_values = []
-        for t in range(1, 26, 6):
+        for t in range(1, 26, 2):
+            print t
             t_values.append(t)
             kf = KFold(n_splits=folds)
             precisions_by_fold = []
