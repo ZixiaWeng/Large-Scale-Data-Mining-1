@@ -8,7 +8,9 @@ from surprise import Dataset
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.datasets import make_regression
 from sklearn.model_selection import KFold
-
+from sklearn.feature_selection import f_regression
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
 def day_of_week_encoding(day):
     return {
@@ -33,7 +35,10 @@ def scaler_encoding(data):
 
     return new_data
 
-
+def standard_scale(data):
+    scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+    scaler.fit(data)
+    return scaler.transform(data)
 class Regression:
     def __init__(self):
         self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Start Time - Hour of Day', 1)
@@ -52,13 +57,14 @@ class Regression:
         # trainset = self.data.as_matrix()[result[0]]
         # print trainset[:3]
 
-        newData = self.scaler_encoding()
+        newData = scaler_encoding(self.data)
+        # print newData
         for train_index, test_index in kf.split(newData):
             trainset = newData.as_matrix()[train_index]
             testset = newData.as_matrix()[test_index]
             
-            trainset = self.standard_scale(trainset)
-            testset = self.standard_scale(testset)
+            trainset = standard_scale(trainset)
+            testset = standard_scale(testset)
 
             trainY = trainset[:,4]
             trainX = np.delete(trainset, 4, 1)
@@ -78,23 +84,19 @@ class Regression:
             print "Test RMSE is: " + str(test_rmse)
 
             # Plot fitted results vs true values
-            # plt.scatter(testY, test_pred)
-            # plt.show()
+            colors = ['blue','yellow']
+            plt.scatter(testY, test_pred, color=colors)
+            plt.show()
 
     def f_reg(self):
-        newData = self.scaler_encoding()
+        newData = scaler_encoding(self.data)
+
         y = newData["Size of Backup (GB)"]
         X = newData.drop("Size of Backup (GB)", 1)
         f_vals, p_vals = f_regression(X, y)
-        #print f_vals
-        highest_ind = []
-        for i in range(0,4):
-            ind = np.argmax(f_vals)
-            highest_ind.append(ind)
-            f_vals = np.delete(f_vals, ind)
-            print f_vals
+        ind = np.array(f_vals).argsort()[-3:][::-1] #https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
+        print ind
 
-        print highest_ind
 
     def initialDraw(self, duration):
         df = self.data  #initilize data
