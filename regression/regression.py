@@ -1,4 +1,5 @@
 import csv
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ from surprise import Dataset
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
+from sklearn import tree
 
 
 def day_of_week_encoding(day):
@@ -35,6 +37,7 @@ def scaler_encoding(data):
 class Regression:
     def __init__(self):
         self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Start Time - Hour of Day', 1)
+        self.scaler_data = scaler_encoding(self.data)
         # self.Y = self.data["Size of Backup (GB)"]
         # self.X = self.data.drop("Size of Backup (GB)", 1)
         # print self.data
@@ -91,14 +94,13 @@ class Regression:
             oob_score=True
         )
 
-        scaler_data = scaler_encoding(self.data)
         kf = KFold(n_splits=10)
         all_test_mse = []
         all_train_mse = []
         all_oob_error = []
-        for train_idx, test_idx in kf.split(scaler_data):
-            train = scaler_data.iloc[train_idx]
-            test = scaler_data.iloc[test_idx]
+        for train_idx, test_idx in kf.split(self.scaler_data):
+            train = self.scaler_data.iloc[train_idx]
+            test = self.scaler_data.iloc[test_idx]
 
             train_Y = train["Size of Backup (GB)"]
             train_X = train.drop("Size of Backup (GB)", 1)
@@ -158,9 +160,27 @@ class Regression:
         # print 'average OOB error: %.5f' % np.mean(oob_error)
 
         # q2-3
-        self.random_forest_with_para('tree number', range(1, 101, 5))
-        self.random_forest_with_para('max features', range(1, 6))
-        self.random_forest_with_para('max depth', range(1, 10))
+        # self.random_forest_with_para('tree number', range(1, 101, 5))
+        # self.random_forest_with_para('max features', range(1, 6))
+        # self.random_forest_with_para('max depth', range(1, 10))
+
+        # q4
+        best_tree = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=4,
+            max_features=5,
+            bootstrap=True,
+            oob_score=True
+        )
+        train_Y = self.scaler_data["Size of Backup (GB)"]
+        train_X = self.scaler_data.drop("Size of Backup (GB)", 1)
+        best_tree.fit(train_X, train_Y)
+        print 'feature importance:', best_tree.feature_importances_
+
+        # q5
+        tree.export_graphviz(best_tree.estimators_[0])
+        os.system('dot -Tpng tree.dot -o tree.png')
+        os.system('open tree.png')
 
 
 
