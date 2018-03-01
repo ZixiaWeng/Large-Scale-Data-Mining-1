@@ -48,7 +48,7 @@ class Regression:
     	for fname in newX["File Name"]:
     		fname = int (fname.split('_')[1])
 
-    	#return newX, newY
+    	return newX, newY
 
    	def One_Hot_Encoding(self):
 
