@@ -36,12 +36,12 @@ class Regression:
         schedule = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
         for index, row in df.iterrows():
-            print row['Work-Flow-ID'], row['File Name']
+            # print row['Work-Flow-ID'], row['File Name']
             flowID, fileName = row['Work-Flow-ID'], row['File Name']
             week, day = row['Week #'], row['Day of Week']
             date = (int(week)-1)*7+schedule.index(day)  # Compute the date
 
-            if date > duration:  # Terminating condition
+            if date >= duration:  # Terminating condition
                 return dic
             print 'Current Date:', date, 'Target Date: ', duration
             if flowID not in dic:
