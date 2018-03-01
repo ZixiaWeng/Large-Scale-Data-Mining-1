@@ -21,6 +21,8 @@ def day_of_week_encoding(day):
         'Sunday': 7
     }[day]
 
+def rmse(predictions, targets):
+    return np.sqrt(((predictions - targets) ** 2).mean())
 
 def scaler_encoding(data):
     new_data = data.copy()
