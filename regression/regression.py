@@ -121,12 +121,47 @@ class Regression:
 
         return np.mean(all_train_mse), np.mean(all_test_mse), np.mean(all_oob_error)
 
-    def random_forest(self):
-        train_mse, test_mse, oob_error = self.run_random_forest()
+    def random_forest_with_para(self, para_name, para_range):
+        all_oob_error = []
+        all_test_mse = []
+        for i in para_range:
+            args = {
+                'tree number': {'tree_num': i},
+                'max features': {'max_features': i},
+                'max depth': {'max_depth': i}
+            }
+            arg = args[para_name]
+            train_mse, test_mse, oob_error = self.run_random_forest(**arg)
+            all_oob_error.append(oob_error)
+            all_test_mse.append(test_mse)
 
-        print 'average train mse: %.8f' % np.mean(train_mse)
-        print 'average test mse: %.8f' % np.mean(test_mse)
-        print 'average OOB error: %.5f' % np.mean(oob_error)
+        plt.plot(para_range, all_oob_error, label='OOB error')
+        plt.xlabel(para_name)
+        plt.ylabel('OOB error')
+        plt.title('different %s for OOB error' % para_name)
+        plt.legend(loc="best")
+        plt.show()
+
+        plt.plot(para_range, all_test_mse, label='test mse')
+        plt.xlabel(para_name)
+        plt.ylabel('test mse')
+        plt.title('different %s for test mse' % para_name)
+        plt.legend(loc="best")
+        plt.show()
+
+    def random_forest(self):
+        # q1
+        # train_mse, test_mse, oob_error = self.run_random_forest()
+
+        # print 'average train mse: %.8f' % np.mean(train_mse)
+        # print 'average test mse: %.8f' % np.mean(test_mse)
+        # print 'average OOB error: %.5f' % np.mean(oob_error)
+
+        # q2-3
+        self.random_forest_with_para('tree number', range(1, 101, 5))
+        self.random_forest_with_para('max features', range(1, 6))
+        self.random_forest_with_para('max depth', range(1, 10))
+
 
 
 
