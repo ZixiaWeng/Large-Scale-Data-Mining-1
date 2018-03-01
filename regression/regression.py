@@ -51,7 +51,7 @@ class Regression:
             if fileName not in dic[flowID]:
                 dic[flowID][fileName] = [0] * duration
 
-            newDF = df.loc[(df['Work-Flow-ID'] == flowID) & df['File Name'].isin([fileName])]
+            newDF = df.loc[(df['Work-Flow-ID'] == flowID) & df['File Name'].isin([fileName])] #only find the rows with this id and file name
             for index_, row_ in newDF.iterrows():
                 if row_['Week #'] == week and row_['Day of Week'] == day:
                     # print row_['Size of Backup (GB)']
