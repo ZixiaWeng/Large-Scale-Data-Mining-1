@@ -6,8 +6,8 @@ from surprise import Reader
 from surprise import Dataset
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.datasets import make_regression
 from sklearn.model_selection import KFold
+from sklearn.metrics import mean_squared_error
 
 
 def day_of_week_encoding(day):
@@ -41,9 +41,9 @@ class Regression:
         # print self.X, self.Y
 
     def initialDraw(self, duration):
-        df = self.data  #initilize data
-        dic = dict()    #create a dictionary
-        arr = []        #temp arr for recording the Size of Backup value for a single day for specific work-flow-id and file name
+        df = self.data  # initilize data
+        dic = dict()    # create a dictionary
+        arr = []        # temp arr for recording the Size of Backup value for a single day for specific work-flow-id and file name
         schedule = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
         for index, row in df.iterrows():
@@ -60,7 +60,7 @@ class Regression:
             if fileName not in dic[flowID]:
                 dic[flowID][fileName] = [0] * duration
 
-            newDF = df.loc[(df['Work-Flow-ID'] == flowID) & df['File Name'].isin([fileName])]  #only find the rows with this id and file name
+            newDF = df.loc[(df['Work-Flow-ID'] == flowID) & df['File Name'].isin([fileName])]  # only find the rows with this id and file name
             for index_, row_ in newDF.iterrows():
                 if row_['Week #'] == week and row_['Day of Week'] == day:  # same date
                     arr.append(row_['Size of Backup (GB)'])
@@ -81,18 +81,21 @@ class Regression:
             plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
             plt.show()
 
-
-    def random_forest(self):
+    def run_random_forest(self, tree_num=20, max_depth=4, max_features=5):
         # X, y = make_regression(n_features=5, n_informative=2, random_state=0, shuffle=False)
         tree = RandomForestRegressor(
-            n_estimators=20,
-            max_depth=4,
+            n_estimators=tree_num,
+            max_depth=max_depth,
+            max_features=max_features,
             bootstrap=True,
-            max_features=5,
+            oob_score=True
         )
 
         scaler_data = scaler_encoding(self.data)
         kf = KFold(n_splits=10)
+        all_test_mse = []
+        all_train_mse = []
+        all_oob_error = []
         for train_idx, test_idx in kf.split(scaler_data):
             train = scaler_data.iloc[train_idx]
             test = scaler_data.iloc[test_idx]
@@ -104,9 +107,26 @@ class Regression:
             test_X = test.drop("Size of Backup (GB)", 1)
 
             tree.fit(train_X, train_Y)
-            print tree.predict(test_X)
 
-        # print regr.feature_importances_
-        # print tree.predict(X)
+            pred_train = tree.predict(train_X)
+            mse_train = mean_squared_error(train_Y, pred_train)
+            all_train_mse.append(mse_train)
+
+            pred_test = tree.predict(test_X)
+            mse_test = mean_squared_error(test_Y, pred_test)
+            all_test_mse.append(mse_test)
+
+            OOB_error = 1 - tree.oob_score_
+            all_oob_error.append(OOB_error)
+
+        return np.mean(all_train_mse), np.mean(all_test_mse), np.mean(all_oob_error)
+
+    def random_forest(self):
+        train_mse, test_mse, oob_error = self.run_random_forest()
+
+        print 'average train mse: %.8f' % np.mean(train_mse)
+        print 'average test mse: %.8f' % np.mean(test_mse)
+        print 'average OOB error: %.5f' % np.mean(oob_error)
+
 
 
