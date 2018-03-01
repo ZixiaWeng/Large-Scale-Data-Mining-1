@@ -1,6 +1,9 @@
 import csv
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from surprise import Reader
+from surprise import Dataset
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.datasets import make_regression
@@ -26,6 +29,51 @@ class Regression:
         # print self.data
         # print self.X, self.Y
 
+    def initialDraw(self, duration):
+        df = self.data  #initilize data
+        dic = dict()    #create a dictionary
+        arr = []        #temp arr for recording the Size of Backup value for a single day for specific work-flow-id and file name
+        schedule = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        for index, row in df.iterrows():
+            print row['Work-Flow-ID'], row['File Name']
+            flowID = row['Work-Flow-ID']
+            fileName = row['File Name']
+            week = row['Week #']
+            day = row['Day of Week']
+            date = (int(week)-1)*7+schedule.index(day)
+
+            if date >= duration:  # Terminating condition
+                return dic 
+            print date,'date'
+            if flowID not in dic:
+                dic[flowID] = dict()
+            if fileName not in dic[flowID]:
+                dic[flowID][fileName] = [0] * duration
+
+            newDF = df.loc[(df['Work-Flow-ID'] == flowID) & df['File Name'].isin([fileName])]
+            for index_, row_ in newDF.iterrows():
+                if row_['Week #'] == week and row_['Day of Week'] == day:
+                    # print row_['Size of Backup (GB)']
+                    arr.append(row_['Size of Backup (GB)'])
+                    dic[flowID][fileName][date] = sum(arr)
+            print arr, 'maximumDate: ', duration
+            arr = []
+
+        return dic
+
+    def plot_buSize(self, duration):
+        dic = self.initialDraw(duration)
+        for flowID in dic:
+            value = dic[flowID]
+            for fileName in value:
+                plt.plot(range(duration), value[fileName][: duration], label=str(fileName))
+                plt.title(flowID + ', duration = ' + str(duration))
+                plt.xlabel('Days')
+                plt.ylabel('Size of Backup (GB)')
+            plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
+            plt.show()
+
     def scaler_encoding(self):
         newX = self.X.copy()
         newY = self.Y.copy()
@@ -49,4 +97,5 @@ class Regression:
         regr.fit(X, Y)
         # print regr.feature_importances_
         # print regr.predict([[0, 0, 0, 0, 0]])
+
 
