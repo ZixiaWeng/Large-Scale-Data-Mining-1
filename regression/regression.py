@@ -40,6 +40,60 @@ class Regression:
         # print self.data
         # print self.X, self.Y
 
+
+    def linear_regression(self):
+
+        kf = KFold(n_splits=10)
+        # print self.data[:3]
+        # result = next(kf.split(self.data), None)
+        # print result
+        # trainset = self.data.as_matrix()[result[0]]
+        # print trainset[:3]
+
+        newData = self.scaler_encoding()
+        for train_index, test_index in kf.split(newData):
+            trainset = newData.as_matrix()[train_index]
+            testset = newData.as_matrix()[test_index]
+            
+            trainset = self.standard_scale(trainset)
+            testset = self.standard_scale(testset)
+
+            trainY = trainset[:,4]
+            trainX = np.delete(trainset, 4, 1)
+
+            testY = testset[:,4]
+            testX = np.delete(testset, 4, 1)
+
+            lr = LinearRegression()
+            lr.fit(trainX, trainY)
+
+            train_pred = lr.predict(trainX)
+            train_rmse = rmse(train_pred, trainY)
+            print "Training RMSE is: " + str(train_rmse)
+
+            test_pred = lr.predict(testX)
+            test_rmse = rmse(test_pred, testY)
+            print "Test RMSE is: " + str(test_rmse)
+
+            # Plot fitted results vs true values
+            # plt.scatter(testY, test_pred)
+            # plt.show()
+
+    def f_reg(self):
+        newData = self.scaler_encoding()
+        y = newData["Size of Backup (GB)"]
+        X = newData.drop("Size of Backup (GB)", 1)
+        f_vals, p_vals = f_regression(X, y)
+        #print f_vals
+        highest_ind = []
+        for i in range(0,4):
+            ind = np.argmax(f_vals)
+            highest_ind.append(ind)
+            f_vals = np.delete(f_vals, ind)
+            print f_vals
+
+        print highest_ind
+
     def initialDraw(self, duration):
         df = self.data  #initilize data
         dic = dict()    #create a dictionary
