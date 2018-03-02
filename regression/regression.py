@@ -121,7 +121,7 @@ class Regression:
             return newData
         categorical_features = np.array(categorical_indices)
         enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
-        newData = enc.fit_transform(newData)
+        newData = enc.fit_transform(newData).toarray()
         print newData,'newdata'
         return newData
         
