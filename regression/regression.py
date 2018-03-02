@@ -12,6 +12,7 @@ from sklearn.feature_selection import f_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 
+import itertools
 
 def day_of_week_encoding(day):
     return {
@@ -40,7 +41,7 @@ def scaler_encoding(data):
 
 
 def standard_scale(data):
-    scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+    scaler = StandardScaler(copy=False, with_mean=False, with_std=True)
     scaler.fit(data)
     return scaler.transform(data)
 
@@ -53,6 +54,9 @@ class Regression:
         # self.X = self.data.drop("Size of Backup (GB)", 1)
         # print self.data
         # print self.X, self.Y
+        self.labels = self.data.columns
+
+
 
     def linear_regression(self):
 
@@ -105,7 +109,23 @@ class Regression:
         ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
         print 'The most important variables:', ind
 
-    # def featureEncoding(self,)
+    def OneHotEncoding(self):
+        return self.data
+    def scalerEncoding(self, data, label): 
+        new_data = data.copy()
+        if label == "Day of Week":
+            new_data["Day of Week"] = new_data["Day of Week"].apply(day_of_week_encoding)
+        elif label == "Work-Flow-ID":
+            new_data["Work-Flow-ID"] = new_data["Work-Flow-ID"].apply(lambda id: id.split('_')[2])
+        elif label == "File Name":
+            new_data["File Name"] = new_data["File Name"].apply(lambda name: name.split('_')[1])
+        else:
+            pass
+        return new_data
+    def featureCombinationEncoding(self):
+        new_data = self.data.copy()
+        lst = list(itertools.product([0,1], repeat=5)) #http://thomas-cokelaer.info/blog/2012/11/how-do-use-itertools-in-python-to-build-permutation-or-combination/
+        print lst
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
