@@ -47,7 +47,7 @@ def standard_scale(data):
 
 class Regression:
     def __init__(self):
-        self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Start Time - Hour of Day', 1)
+        self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Time (hour)', 1)
         self.scaler_data = scaler_encoding(self.data)
         # self.Y = self.data["Size of Backup (GB)"]
         # self.X = self.data.drop("Size of Backup (GB)", 1)
@@ -57,12 +57,6 @@ class Regression:
     def linear_regression(self):
 
         kf = KFold(n_splits=10)
-        # print self.data[:3]
-        # result = next(kf.split(self.data), None)
-        # print result
-        # trainset = self.data.as_matrix()[result[0]]
-        # print trainset[:3]
-
         newData = scaler_encoding(self.data)
         # print newData
         for train_index, test_index in kf.split(newData):
@@ -71,12 +65,13 @@ class Regression:
             
             trainset = standard_scale(trainset)
             testset = standard_scale(testset)
+            print trainset,'before'
+            trainY = trainset[:,5]
+            print trainY, 'after'
+            trainX = np.delete(trainset, 5, 1)
 
-            trainY = trainset[:,4]
-            trainX = np.delete(trainset, 4, 1)
-
-            testY = testset[:,4]
-            testX = np.delete(testset, 4, 1)
+            testY = testset[:,5]
+            testX = np.delete(testset, 5, 1)
 
             lr = LinearRegression()
             lr.fit(trainX, trainY)
@@ -92,7 +87,14 @@ class Regression:
             # Plot fitted results vs true values
             colors = ['blue','yellow']
             plt.scatter(testY, test_pred, color=colors)
+            plt.title("linear reg with standard scale for Fitted values vs. Actual values ")
             plt.show()
+
+
+            plt.scatter(test_pred, test_pred-testY, color=colors)
+            plt.title("linear reg with standard scale for Residuals vs. Fitted value ")
+            plt.show()
+            #TO DO, create a plot function to facilitate coding efficiency
 
     def f_reg(self):
         newData = scaler_encoding(self.data)
@@ -101,7 +103,9 @@ class Regression:
         X = newData.drop("Size of Backup (GB)", 1)
         f_vals, p_vals = f_regression(X, y)
         ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
-        print ind
+        print 'The most important variables:', ind
+
+    # def featureEncoding(self,)
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
