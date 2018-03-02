@@ -11,6 +11,8 @@ from sklearn import tree
 from sklearn.feature_selection import f_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
+
 
 import itertools
 
@@ -109,8 +111,18 @@ class Regression:
         ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
         print 'The most important variables:', ind
 
-    def OneHotEncoding(self):
-        return self.data
+    def OneHotEncoding(self, data, comb):
+    	newData = data.copy()
+		newData = scaler_encoding(newData) # encode all features with scaler encoding
+		categorical_indices = []
+		for i in range(len(comb)): 
+			if comb[i] == 1:
+				categorical_indices.append(i)
+		categorical_features = np.array(categorical_indices)
+		enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
+		newData = enc.fit_transform(newData)
+        return newData
+        
     def scalerEncoding(self, data, label): 
         new_data = data.copy()
         if label == "Day of Week":
