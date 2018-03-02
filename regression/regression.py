@@ -1,15 +1,16 @@
-import csv
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from surprise import Reader
-from surprise import Dataset
 
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
 from sklearn import tree
+
+from sklearn.feature_selection import f_regression
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
 
 
 def day_of_week_encoding(day):
@@ -24,6 +25,10 @@ def day_of_week_encoding(day):
     }[day]
 
 
+def rmse(predictions, targets):
+    return np.sqrt(((predictions - targets) ** 2).mean())
+
+
 def scaler_encoding(data):
     new_data = data.copy()
 
@@ -34,6 +39,12 @@ def scaler_encoding(data):
     return new_data
 
 
+def standard_scale(data):
+    scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+    scaler.fit(data)
+    return scaler.transform(data)
+
+
 class Regression:
     def __init__(self):
         self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Start Time - Hour of Day', 1)
@@ -42,6 +53,55 @@ class Regression:
         # self.X = self.data.drop("Size of Backup (GB)", 1)
         # print self.data
         # print self.X, self.Y
+
+    def linear_regression(self):
+
+        kf = KFold(n_splits=10)
+        # print self.data[:3]
+        # result = next(kf.split(self.data), None)
+        # print result
+        # trainset = self.data.as_matrix()[result[0]]
+        # print trainset[:3]
+
+        newData = scaler_encoding(self.data)
+        # print newData
+        for train_index, test_index in kf.split(newData):
+            trainset = newData.as_matrix()[train_index]
+            testset = newData.as_matrix()[test_index]
+            
+            trainset = standard_scale(trainset)
+            testset = standard_scale(testset)
+
+            trainY = trainset[:,4]
+            trainX = np.delete(trainset, 4, 1)
+
+            testY = testset[:,4]
+            testX = np.delete(testset, 4, 1)
+
+            lr = LinearRegression()
+            lr.fit(trainX, trainY)
+
+            train_pred = lr.predict(trainX)
+            train_rmse = rmse(train_pred, trainY)
+            print "Training RMSE is: " + str(train_rmse)
+
+            test_pred = lr.predict(testX)
+            test_rmse = rmse(test_pred, testY)
+            print "Test RMSE is: " + str(test_rmse)
+
+            # Plot fitted results vs true values
+            colors = ['blue','yellow']
+            plt.scatter(testY, test_pred, color=colors)
+            plt.show()
+
+    def f_reg(self):
+        newData = scaler_encoding(self.data)
+
+        y = newData["Size of Backup (GB)"]
+        X = newData.drop("Size of Backup (GB)", 1)
+        f_vals, p_vals = f_regression(X, y)
+        ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
+        print ind
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
@@ -153,16 +213,16 @@ class Regression:
 
     def random_forest(self):
         # q1
-        # train_mse, test_mse, oob_error = self.run_random_forest()
+        train_mse, test_mse, oob_error = self.run_random_forest()
 
-        # print 'average train mse: %.8f' % np.mean(train_mse)
-        # print 'average test mse: %.8f' % np.mean(test_mse)
-        # print 'average OOB error: %.5f' % np.mean(oob_error)
+        print 'average train mse: %.8f' % np.mean(train_mse)
+        print 'average test mse: %.8f' % np.mean(test_mse)
+        print 'average OOB error: %.5f' % np.mean(oob_error)
 
         # q2-3
-        # self.random_forest_with_para('tree number', range(1, 101, 5))
-        # self.random_forest_with_para('max features', range(1, 6))
-        # self.random_forest_with_para('max depth', range(1, 10))
+        self.random_forest_with_para('tree number', range(1, 101, 5))
+        self.random_forest_with_para('max features', range(1, 6))
+        self.random_forest_with_para('max depth', range(1, 10))
 
         # q4
         best_tree = RandomForestRegressor(
