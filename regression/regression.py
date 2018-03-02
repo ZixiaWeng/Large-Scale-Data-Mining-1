@@ -11,7 +11,10 @@ from sklearn import tree
 from sklearn.feature_selection import f_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import OneHotEncoder
 
+
+import itertools
 
 def day_of_week_encoding(day):
     return {
@@ -40,29 +43,26 @@ def scaler_encoding(data):
 
 
 def standard_scale(data):
-    scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+    scaler = StandardScaler(copy=False, with_mean=False, with_std=True)
     scaler.fit(data)
     return scaler.transform(data)
 
 
 class Regression:
     def __init__(self):
-        self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Start Time - Hour of Day', 1)
+        self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Time (hour)', 1)
         self.scaler_data = scaler_encoding(self.data)
         # self.Y = self.data["Size of Backup (GB)"]
         # self.X = self.data.drop("Size of Backup (GB)", 1)
         # print self.data
         # print self.X, self.Y
+        self.labels = self.data.columns
+
+
 
     def linear_regression(self):
 
         kf = KFold(n_splits=10)
-        # print self.data[:3]
-        # result = next(kf.split(self.data), None)
-        # print result
-        # trainset = self.data.as_matrix()[result[0]]
-        # print trainset[:3]
-
         newData = scaler_encoding(self.data)
         # print newData
         for train_index, test_index in kf.split(newData):
@@ -71,12 +71,13 @@ class Regression:
             
             trainset = standard_scale(trainset)
             testset = standard_scale(testset)
+            print trainset,'before'
+            trainY = trainset[:,5]
+            print trainY, 'after'
+            trainX = np.delete(trainset, 5, 1)
 
-            trainY = trainset[:,4]
-            trainX = np.delete(trainset, 4, 1)
-
-            testY = testset[:,4]
-            testX = np.delete(testset, 4, 1)
+            testY = testset[:,5]
+            testX = np.delete(testset, 5, 1)
 
             lr = LinearRegression()
             lr.fit(trainX, trainY)
@@ -92,7 +93,14 @@ class Regression:
             # Plot fitted results vs true values
             colors = ['blue','yellow']
             plt.scatter(testY, test_pred, color=colors)
+            plt.title("linear reg with standard scale for Fitted values vs. Actual values ")
             plt.show()
+
+
+            plt.scatter(test_pred, test_pred-testY, color=colors)
+            plt.title("linear reg with standard scale for Residuals vs. Fitted value ")
+            plt.show()
+            #TO DO, create a plot function to facilitate coding efficiency
 
     def f_reg(self):
         newData = scaler_encoding(self.data)
@@ -101,7 +109,51 @@ class Regression:
         X = newData.drop("Size of Backup (GB)", 1)
         f_vals, p_vals = f_regression(X, y)
         ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
-        print ind
+        print 'The most important variables:', ind
+
+    def OneHotEncoding(self, data, comb):
+        newData = data.copy()
+        categorical_indices = []
+        for i in range(len(comb)): 
+            if comb[i] == 1:
+                categorical_indices.append(i)
+        if len(categorical_indices) == 0:
+            return newData
+        categorical_features = np.array(categorical_indices)
+        enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
+        newData = enc.fit_transform(newData).toarray()
+        print newData,'newdata'
+        return newData
+        
+    def scalerEncoding(self, data, label): 
+        new_data = data.copy()
+        if label == "Day of Week":
+            new_data["Day of Week"] = new_data["Day of Week"].apply(day_of_week_encoding)
+        elif label == "Work-Flow-ID":
+            new_data["Work-Flow-ID"] = new_data["Work-Flow-ID"].apply(lambda id: id.split('_')[2])
+        elif label == "File Name":
+            new_data["File Name"] = new_data["File Name"].apply(lambda name: name.split('_')[1])
+        else:
+            pass
+        return new_data
+    def featureCombinationEncoding(self):
+        data = scaler_encoding(self.data.copy())
+        lst = list(itertools.product([0,1], repeat=5)) #http://thomas-cokelaer.info/blog/2012/11/how-do-use-itertools-in-python-to-build-permutation-or-combination/
+        tmpData = pd.get_dummies(data,columns=['File Name'])
+        print tmpData
+        new_data = self.OneHotEncoding(data.as_matrix(), (0,0,0,0,1))
+        # for tupl in lst:
+        #     new_data = data
+        #     new_data = self.OneHotEncoding(new_data.as_matrix(), tupl)
+            
+            
+            # print new_data
+            # index = 0
+            # for label in tupl:
+            #     if label == 1:
+            #         new_data = self.OneHotEncoding(new_data, index)
+            #     index+=1
+        print type(lst[0])
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
