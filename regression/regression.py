@@ -112,15 +112,17 @@ class Regression:
         print 'The most important variables:', ind
 
     def OneHotEncoding(self, data, comb):
-    	newData = data.copy()
-		newData = scaler_encoding(newData) # encode all features with scaler encoding
-		categorical_indices = []
-		for i in range(len(comb)): 
-			if comb[i] == 1:
-				categorical_indices.append(i)
-		categorical_features = np.array(categorical_indices)
-		enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
-		newData = enc.fit_transform(newData)
+        newData = data.copy()
+        categorical_indices = []
+        for i in range(len(comb)): 
+            if comb[i] == 1:
+                categorical_indices.append(i)
+        if len(categorical_indices) == 0:
+            return newData
+        categorical_features = np.array(categorical_indices)
+        enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
+        newData = enc.fit_transform(newData)
+        print newData,'newdata'
         return newData
         
     def scalerEncoding(self, data, label): 
@@ -135,9 +137,23 @@ class Regression:
             pass
         return new_data
     def featureCombinationEncoding(self):
-        new_data = self.data.copy()
+        data = scaler_encoding(self.data.copy())
         lst = list(itertools.product([0,1], repeat=5)) #http://thomas-cokelaer.info/blog/2012/11/how-do-use-itertools-in-python-to-build-permutation-or-combination/
-        print lst
+        tmpData = pd.get_dummies(data,columns=['File Name'])
+        print tmpData
+        new_data = self.OneHotEncoding(data.as_matrix(), (0,0,0,0,1))
+        # for tupl in lst:
+        #     new_data = data
+        #     new_data = self.OneHotEncoding(new_data.as_matrix(), tupl)
+            
+            
+            # print new_data
+            # index = 0
+            # for label in tupl:
+            #     if label == 1:
+            #         new_data = self.OneHotEncoding(new_data, index)
+            #     index+=1
+        print type(lst[0])
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
