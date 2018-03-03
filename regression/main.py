@@ -12,5 +12,5 @@ if __name__ == '__main__':
     # r.linear_regression()
     # r.f_reg()
     # r.random_forest()
-    # r.featureCombinationEncoding()
+    r.rsmeUnderCombineEncoding()
     # r.f_reg()

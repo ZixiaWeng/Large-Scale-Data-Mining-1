@@ -118,12 +118,11 @@ class Regression:
             if comb[i] == 1:
                 categorical_indices.append(i)
         if len(categorical_indices) == 0:
-            return newData
+            return pd.DataFrame(newData)
         categorical_features = np.array(categorical_indices)
         enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
         newData = enc.fit_transform(newData).toarray()
-        print newData,'newdata'
-        return newData
+        return pd.DataFrame(newData)
         
     def scalerEncoding(self, data, label): 
         new_data = data.copy()
@@ -136,24 +135,61 @@ class Regression:
         else:
             pass
         return new_data
+
     def featureCombinationEncoding(self):
+        all_data = list()
         data = scaler_encoding(self.data.copy())
         lst = list(itertools.product([0,1], repeat=5)) #http://thomas-cokelaer.info/blog/2012/11/how-do-use-itertools-in-python-to-build-permutation-or-combination/
-        tmpData = pd.get_dummies(data,columns=['File Name'])
-        print tmpData
-        new_data = self.OneHotEncoding(data.as_matrix(), (0,0,0,0,1))
-        # for tupl in lst:
-        #     new_data = data
-        #     new_data = self.OneHotEncoding(new_data.as_matrix(), tupl)
-            
-            
-            # print new_data
-            # index = 0
-            # for label in tupl:
-            #     if label == 1:
-            #         new_data = self.OneHotEncoding(new_data, index)
-            #     index+=1
-        print type(lst[0])
+
+        # new_data = self.OneHotEncoding(data.as_matrix(), (0,0,0,0,1))
+        for tupl in lst:
+            new_data = data
+            new_data = self.OneHotEncoding(new_data.as_matrix(), tupl)
+            all_data.append(new_data)
+            print new_data,tupl
+        return all_data
+
+    def rsmeUnderCombineEncoding(self):
+        all_data = self.featureCombinationEncoding()
+        all_train_rmse = []
+        all_test_rmse = []
+        kf = KFold(n_splits=10)
+        for dt in all_data:
+            print type(dt),'dt'
+            new_data = dt.copy()
+            # .iloc[:, :-1]
+            train_RMSE, test_RMSE = 0, 0
+            for train_index, test_index in kf.split(new_data):
+                trainset = new_data.as_matrix()[train_index]
+                testset = new_data.as_matrix()[test_index]
+
+                trainY = trainset[:,-1]
+                trainX = np.delete(trainset, -1, 1)
+
+                testY = testset[:,-1]
+                testX = np.delete(testset, -1, 1)
+
+                lr = LinearRegression()
+                lr.fit(trainX, trainY)
+
+                train_pred = lr.predict(trainX)
+                train_rmse = rmse(train_pred, trainY)
+                train_RMSE+=train_rmse
+
+                test_pred = lr.predict(testX)
+                test_rmse = rmse(test_pred, testY)
+                print "Test RMSE is: " + str(test_rmse) + "  ____&&&&&&&____  Training RMSE is: " + str(train_rmse)
+                test_RMSE+=test_rmse
+
+            tr, te = train_RMSE/10, test_RMSE/10
+            all_train_rmse.append(tr)
+            all_test_rmse.append(te)
+        plt.xlabel('Combinations')
+        plt.ylabel('RMSE')
+        plt.plot(range(32), all_train_rmse, label="RMSE of train data")
+        plt.plot(range(32), all_test_rmse, label="RMSE of test data")
+        plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
+        plt.show()
 
     def initialDraw(self, duration):
         df = self.data  # initilize data
@@ -293,7 +329,5 @@ class Regression:
         tree.export_graphviz(best_tree.estimators_[0])
         os.system('dot -Tpng tree.dot -o tree.png')
         os.system('open tree.png')
-
-
 
 
