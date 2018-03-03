@@ -13,6 +13,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
 
+from sklearn.neural_network import MLPRegressor
+
 
 import itertools
 
@@ -329,5 +331,54 @@ class Regression:
         tree.export_graphviz(best_tree.estimators_[0])
         os.system('dot -Tpng tree.dot -o tree.png')
         os.system('open tree.png')
+
+    def run_nn(self, hidden_units, activation):
+        nn = MLPRegressor(
+            hidden_layer_sizes=(hidden_units,),
+            activation=activation
+        )
+        kf = KFold(n_splits=10)
+        all_test_mse = []
+        for train_idx, test_idx in kf.split(self.scaler_data):
+            train = self.scaler_data.iloc[train_idx]
+            test = self.scaler_data.iloc[test_idx]
+
+            train_Y = train["Size of Backup (GB)"]
+            train_X = train.drop("Size of Backup (GB)", 1)
+
+            test_Y = test["Size of Backup (GB)"]
+            test_X = test.drop("Size of Backup (GB)", 1)
+
+            nn.fit(train_X, train_Y)
+
+            pred_test = nn.predict(test_X)
+            mse_test = mean_squared_error(test_Y, pred_test)
+            all_test_mse.append(mse_test)
+
+        return np.mean(all_test_mse)
+
+    def nn(self):
+        activations = ['logistic', 'tanh', 'relu']
+        hidden_units_range = range(1, 16)
+        for act in activations:
+            all_test_mse = []
+            for i in hidden_units_range:
+                test_mse = self.run_nn(i, act)
+                all_test_mse.append(test_mse)
+
+            plt.plot(hidden_units_range, all_test_mse, label='%s activation mse' % act)
+        plt.xlabel('hidden units')
+        plt.ylabel('test mse')
+        plt.title('activation functions with test mse')
+        plt.legend(loc="best")
+        plt.show()
+
+
+
+
+
+
+
+
 
 
