@@ -15,3 +15,4 @@ if __name__ == '__main__':
     # r.rsmeUnderCombineEncoding()
     # r.f_reg()
     r.nn()
+    # r.knn()
