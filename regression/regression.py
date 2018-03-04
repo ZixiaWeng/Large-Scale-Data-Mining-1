@@ -14,8 +14,10 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
 
-
+from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
 import itertools
+import math
 
 def day_of_week_encoding(day):
     return {
@@ -164,6 +166,16 @@ class Regression:
             # print new_data,tupl
         return all_data
 
+    # Helper plot function
+    def pltModelMSE(self, title, trainMse, testMse):
+        plt.title(title)
+        plt.xlabel('Combinations')
+        plt.ylabel('RMSE')
+        plt.plot(range(32), trainMse, label="RMSE of train data")
+        plt.plot(range(32), testMse, label="RMSE of test data")
+        plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
+        plt.show()
+
     def rsmeUnderCombineEncoding(self):
         all_data = self.featureCombinationEncoding()
         all_train_rmse = []
@@ -201,13 +213,59 @@ class Regression:
             tr, te = train_RMSE/10, test_RMSE/10
             all_train_rmse.append(tr)
             all_test_rmse.append(te)
-        plt.xlabel('Combinations')
-        plt.ylabel('RMSE')
-        plt.plot(range(32), all_train_rmse, label="RMSE of train data")
-        plt.plot(range(32), all_test_rmse, label="RMSE of test data")
-        plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
-        plt.show()
+        self.pltModelMSE("Linear Regression with 32 combinations of feature encoding", all_train_rmse, all_test_rmse)
+    
+
+    def regularizer(self, switcher, alphaList):
+        candidates = ['Ridge','Lasso']
+        all_data = self.featureCombinationEncoding()
+        kf = KFold(n_splits=10, shuffle = False)
+        for alpha in alphaList:
+            all_train_rmse, all_test_rmse = [], []
+            for dt in all_data:
+                # print dt,'dt'
+                new_data = dt.copy()
+                # .iloc[:, :-1]
+                train_RMSE, test_RMSE = 0, 0
+                for train_index, test_index in kf.split(new_data):
+
+                    train = new_data.iloc[train_index]
+                    test = new_data.iloc[test_index]
+
+                    trainY = train["Size of Backup (GB)"]
+                    trainX = train.drop("Size of Backup (GB)", 1)
+
+                    testY = test["Size of Backup (GB)"]
+                    testX = test.drop("Size of Backup (GB)", 1)
+
+                    if switcher == 0:
+                        lr = Ridge(alpha = alpha)
+                    else:
+                        lr = Lasso(alpha = alpha)
+                    lr.fit(trainX, trainY)
+
+                    train_pred = lr.predict(trainX)
+                    train_rmse = rmse(train_pred, trainY)
+                    train_RMSE+=train_rmse
         
+                    test_pred = lr.predict(testX)
+                    # print test_pred,'pred'
+                    test_rmse = rmse(test_pred, testY)
+                    print "Test RMSE is: " + str(test_rmse) + "  ____&&&&&&&____  Training RMSE is: " + str(train_rmse)
+                    test_RMSE+=test_rmse
+
+                tr, te = train_RMSE/10, test_RMSE/10
+                all_train_rmse.append(tr)
+                all_test_rmse.append(te)
+            self.pltModelMSE(candidates[switcher]+"Regularizer with alpha: "+ str(alpha), all_train_rmse, all_test_rmse)
+    
+
+    def runRidgeAndLasso(self):
+        alphaList = [[0.001, 0.1, 10, 1000],[0.0001, 0.001, 0.01, 0.1]]
+        for i in (0,1):
+            self.regularizer(i, alphaList[i]) #0:Ridge 1:Lasso
+
+    # Q1(1)
     def initialDraw(self, duration):
         df = self.data  # initilize data
         dic = dict()    # create a dictionary
@@ -236,7 +294,7 @@ class Regression:
             arr = []
 
         return dic
-
+    # Q1(2)
     def plot_buSize(self, duration):
         dic = self.initialDraw(duration)
         for flowID in dic:
