@@ -13,6 +13,7 @@ from sklearn.feature_selection import f_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.cross_validation import cross_val_predict
 
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -40,7 +41,7 @@ def scaler_encoding(data):
 
     new_data["Day of Week"] = new_data["Day of Week"].apply(day_of_week_encoding)
     new_data["Work-Flow-ID"] = new_data["Work-Flow-ID"].apply(lambda id: id.split('_')[2])
-    new_data["File Name"] = new_data["File Name"].apply(lambda name: name.split('_')[1])
+    new_data["File Name"] = new_data["File Name"].apply(lambda name: int(name.split('_')[1]))
 
     return new_data
 
@@ -264,7 +265,23 @@ class Regression:
         alphaList = [[0.001, 0.1, 10, 1000],[0.0001, 0.001, 0.01, 0.1]]
         for i in (0,1):
             self.regularizer(i, alphaList[i]) #0:Ridge 1:Lasso
+    
+    #Q2.4
+    def predictBUSize(self):
+        for work_flow_id, sorted_df in self.scaler_data.groupby(['Work-Flow-ID']):
+            label = sorted_df['Size of Backup (GB)'].tolist()
+            feature = sorted_df.drop(['Work-Flow-ID','Size of Backup (GB)'], axis=1).as_matrix().tolist()
+            # print feature
+            predict = cross_val_predict(LinearRegression(), feature, label, cv=10)
+            fig, coo = plt.subplots()
+            coo.scatter(label, predict, s=2)
+            plt.title('Fitted values vs. Actual values: work_flow'+work_flow_id)
+            plt.show()
 
+            fig, coo = plt.subplots()
+            coo.scatter(predict, predict - label, s=2)
+            plt.title('Residuals vs. Fitted value: work_flow'+work_flow_id)
+            plt.show()
     # Q1(1)
     def initialDraw(self, duration):
         df = self.data  # initilize data
