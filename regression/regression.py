@@ -50,14 +50,12 @@ def standard_scale(data):
     scaler.fit(data)
     return scaler.transform(data)
 
+
 class Regression:
     def __init__(self):
         self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Time (hour)', 1)
         self.scaler_data = scaler_encoding(self.data)
-        # self.Y = self.data["Size of Backup (GB)"]
-        # self.X = self.data.drop("Size of Backup (GB)", 1)
-        # print self.data
-        # print self.X, self.Y
+        self.one_hot_data = self.OneHotEncoding(self.scaler_data.as_matrix(), (1, 1, 1, 1, 1))
         self.labels = self.data.columns
 
     def linear_regression(self):
@@ -331,10 +329,10 @@ class Regression:
         os.system('open tree.png')
 
     # helper for neural network and knn
-    def get_mse_with_k_fold(self, model, k):
+    def get_mse_with_k_fold(self, model, k, data):
         kf = KFold(n_splits=k)
         all_test_mse = []
-        for train_idx, test_idx in kf.split(self.scaler_data):
+        for train_idx, test_idx in kf.split(data):
             train = self.scaler_data.iloc[train_idx]
             test = self.scaler_data.iloc[test_idx]
 
@@ -357,7 +355,7 @@ class Regression:
             hidden_layer_sizes=(hidden_units,),
             activation=activation
         )
-        return self.get_mse_with_k_fold(model=nn_regressor, k=10)
+        return self.get_mse_with_k_fold(model=nn_regressor, k=10, data=self.one_hot_data)
 
     def nn(self):
         activations = ['logistic', 'tanh', 'relu']
@@ -377,7 +375,7 @@ class Regression:
 
     def run_knn(self, n_neighbors):
         neigh = KNeighborsRegressor(n_neighbors=n_neighbors)
-        return self.get_mse_with_k_fold(model=neigh, k=3)
+        return self.get_mse_with_k_fold(model=neigh, k=10, data=self.scaler_data)
 
     def knn(self):
         all_test_mse = []
