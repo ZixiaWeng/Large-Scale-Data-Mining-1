@@ -118,11 +118,16 @@ class Regression:
             if comb[i] == 1:
                 categorical_indices.append(i)
         if len(categorical_indices) == 0:
-            return pd.DataFrame(newData)
+            df = pd.DataFrame(newData)        
+            df = df.rename(columns = {df.columns.values[-1] : 'Size of Backup (GB)'})
+            return df
         categorical_features = np.array(categorical_indices)
         enc = OneHotEncoder(n_values = 'auto', categorical_features = categorical_features)
         newData = enc.fit_transform(newData).toarray()
-        return pd.DataFrame(newData)
+        df = pd.DataFrame(newData)        
+        df = df.rename(columns = {df.columns.values[-1] : 'Size of Backup (GB)'})
+        # print df,'dsadsadsad'
+        return df
         
     def scalerEncoding(self, data, label): 
         new_data = data.copy()
@@ -144,9 +149,10 @@ class Regression:
         # new_data = self.OneHotEncoding(data.as_matrix(), (0,0,0,0,1))
         for tupl in lst:
             new_data = data
-            new_data = self.OneHotEncoding(new_data.as_matrix(), tupl)
+            new_data = self.OneHotEncoding(new_data.as_matrix(), (tupl))
+            # print new_data,'kljlkhkuhgyi'
             all_data.append(new_data)
-            print new_data,tupl
+            # print new_data,tupl
         return all_data
 
     def rsmeUnderCombineEncoding(self):
@@ -155,19 +161,20 @@ class Regression:
         all_test_rmse = []
         kf = KFold(n_splits=10)
         for dt in all_data:
-            print type(dt),'dt'
+            print dt,'dt'
             new_data = dt.copy()
             # .iloc[:, :-1]
             train_RMSE, test_RMSE = 0, 0
             for train_index, test_index in kf.split(new_data):
-                trainset = new_data.as_matrix()[train_index]
-                testset = new_data.as_matrix()[test_index]
 
-                trainY = trainset[:,-1]
-                trainX = np.delete(trainset, -1, 1)
+                train = new_data.iloc[train_index]
+                test = new_data.iloc[test_index]
 
-                testY = testset[:,-1]
-                testX = np.delete(testset, -1, 1)
+                trainY = train["Size of Backup (GB)"]
+                trainX = train.drop("Size of Backup (GB)", 1)
+
+                testY = test["Size of Backup (GB)"]
+                testX = test.drop("Size of Backup (GB)", 1)
 
                 lr = LinearRegression()
                 lr.fit(trainX, trainY)
@@ -175,8 +182,9 @@ class Regression:
                 train_pred = lr.predict(trainX)
                 train_rmse = rmse(train_pred, trainY)
                 train_RMSE+=train_rmse
-
+    
                 test_pred = lr.predict(testX)
+                # print test_pred,'pred'
                 test_rmse = rmse(test_pred, testY)
                 print "Test RMSE is: " + str(test_rmse) + "  ____&&&&&&&____  Training RMSE is: " + str(train_rmse)
                 test_RMSE+=test_rmse
@@ -190,7 +198,7 @@ class Regression:
         plt.plot(range(32), all_test_rmse, label="RMSE of test data")
         plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
         plt.show()
-
+        
     def initialDraw(self, duration):
         df = self.data  # initilize data
         dic = dict()    # create a dictionary
