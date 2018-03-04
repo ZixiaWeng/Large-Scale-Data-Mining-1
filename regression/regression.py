@@ -13,6 +13,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
 
+from sklearn.neural_network import MLPRegressor
+from sklearn.neighbors import KNeighborsRegressor
+
 
 import itertools
 
@@ -52,13 +55,8 @@ class Regression:
     def __init__(self):
         self.data = pd.read_csv('network_backup_dataset.csv').drop('Backup Time (hour)', 1)
         self.scaler_data = scaler_encoding(self.data)
-        # self.Y = self.data["Size of Backup (GB)"]
-        # self.X = self.data.drop("Size of Backup (GB)", 1)
-        # print self.data
-        # print self.X, self.Y
+        self.one_hot_data = self.OneHotEncoding(self.scaler_data.as_matrix(), (1, 1, 1, 1, 1))
         self.labels = self.data.columns
-
-
 
     def linear_regression(self):
 
@@ -337,5 +335,72 @@ class Regression:
         tree.export_graphviz(best_tree.estimators_[0])
         os.system('dot -Tpng tree.dot -o tree.png')
         os.system('open tree.png')
+
+    # helper for neural network and knn
+    def get_mse_with_k_fold(self, model, k, data):
+        kf = KFold(n_splits=k)
+        all_test_mse = []
+        for train_idx, test_idx in kf.split(data):
+            train = self.scaler_data.iloc[train_idx]
+            test = self.scaler_data.iloc[test_idx]
+
+            train_Y = train["Size of Backup (GB)"]
+            train_X = train.drop("Size of Backup (GB)", 1)
+
+            test_Y = test["Size of Backup (GB)"]
+            test_X = test.drop("Size of Backup (GB)", 1)
+
+            model.fit(train_X, train_Y)
+
+            pred_test = model.predict(test_X)
+            mse_test = mean_squared_error(test_Y, pred_test)
+            all_test_mse.append(mse_test)
+
+        return np.mean(all_test_mse)
+
+    def run_nn(self, hidden_units, activation):
+        nn_regressor = MLPRegressor(
+            hidden_layer_sizes=(hidden_units,),
+            activation=activation
+        )
+        return self.get_mse_with_k_fold(model=nn_regressor, k=10, data=self.one_hot_data)
+
+    def nn(self):
+        activations = ['logistic', 'tanh', 'relu']
+        hidden_units_range = range(1, 51, 2)
+        for act in activations:
+            all_test_mse = []
+            for i in hidden_units_range:
+                test_mse = self.run_nn(i, act)
+                all_test_mse.append(test_mse)
+
+            plt.plot(hidden_units_range, all_test_mse, label='%s activation mse' % act)
+        plt.xlabel('hidden units')
+        plt.ylabel('test mse')
+        plt.title('activation functions with test mse')
+        plt.legend(loc="best")
+        plt.show()
+
+    def run_knn(self, n_neighbors):
+        neigh = KNeighborsRegressor(n_neighbors=n_neighbors)
+        return self.get_mse_with_k_fold(model=neigh, k=10, data=self.scaler_data)
+
+    def knn(self):
+        all_test_mse = []
+        neightbors_range = range(1, 101, 2)
+        for i in neightbors_range:
+            test_mse = self.run_knn(n_neighbors=i)
+            all_test_mse.append(test_mse)
+        plt.plot(neightbors_range, all_test_mse, label='n neighbors mse')
+        plt.xlabel('n neighbors')
+        plt.ylabel('test mse')
+        plt.title('n neighbors with test mse')
+        plt.legend(loc="best")
+        plt.show()
+
+
+
+
+
 
 
