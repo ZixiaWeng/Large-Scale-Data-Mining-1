@@ -121,7 +121,7 @@ class Regression:
         ind = np.array(mi).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
         print 'The most important variables found via mutual_info_regression: ' + str(self.labels[ind][0]) + ', ' + str(self.labels[ind][1]) + ', ' + str(self.labels[ind][2])
         
-def OneHotEncoding(self, data, comb):
+    def OneHotEncoding(self, data, comb):
         newData = data.copy()
         categorical_indices = []
         for i in xrange(0,5): 
