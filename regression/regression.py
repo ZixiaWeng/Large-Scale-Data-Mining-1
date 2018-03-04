@@ -8,6 +8,7 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
 from sklearn import tree
 
+from sklearn.feature_selection import mutual_info_regression
 from sklearn.feature_selection import f_regression
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
@@ -104,12 +105,22 @@ class Regression:
 
     def f_reg(self):
         newData = scaler_encoding(self.data)
-
+        #print newData[:3]
         y = newData["Size of Backup (GB)"]
         X = newData.drop("Size of Backup (GB)", 1)
         f_vals, p_vals = f_regression(X, y)
         ind = np.array(f_vals).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
-        print 'The most important variables:', ind
+        print 'The most important variables found via f_regression: ' + str(self.labels[ind][0]) + ', ' + str(self.labels[ind][1]) + ', ' + str(self.labels[ind][2])
+        
+    def mutual_info_reg(self):
+    	newData = scaler_encoding(self.data)
+        #print newData[:3]
+        y = newData["Size of Backup (GB)"]
+        X = newData.drop("Size of Backup (GB)", 1)
+        mi = mutual_info_regression(X, y, discrete_features='auto', n_neighbors=3, copy=True, random_state=None)
+        ind = np.array(mi).argsort()[-3:][::-1]  # https://stackoverflow.com/questions/6910641/how-to-get-indices-of-n-maximum-values-in-a-numpy-array
+        print 'The most important variables found via mutual_info_regression: ' + str(self.labels[ind][0]) + ', ' + str(self.labels[ind][1]) + ', ' + str(self.labels[ind][2])
+        
 
     def OneHotEncoding(self, data, comb):
         newData = data.copy()
