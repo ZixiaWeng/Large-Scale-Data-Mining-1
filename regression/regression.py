@@ -142,6 +142,31 @@ class Regression:
         tr_rmse, te_rmse = np.array(train_rmse)/10.0,np.array(test_rmse)/10.0
         print average_tr/10.0, average_te/10.0
 
+    def linear_regression_whole_Data_Points_best_combination(self):
+        newData = scaler_encoding(self.data)
+        newData = self.OneHotEncoding(newData.as_matrix(), (0,1,1,1,0))
+        trainset = newData.as_matrix()
+        testset = newData.as_matrix()
+        trainset = standard_scale(trainset)
+        testset = standard_scale(testset)
+        trainY = trainset[:,-1]
+        trainX = np.delete(trainset, -1, 1)
+        testY = testset[:,-1]
+        testX = np.delete(testset, -1, 1)
+        lr = LinearRegression()
+        lr.fit(trainX, trainY)
+        test_pred = lr.predict(testX)
+
+        colors = ['blue','yellow']
+        plt.plot([min(testY), max(testY)], [min(testY), max(testY)])
+        plt.scatter(testY, test_pred, color=colors)
+        plt.title("linear reg of all data for Fitted values vs. Actual values of 01110 ")
+        plt.show()
+
+        plt.scatter(test_pred, test_pred-testY, color=colors)
+        plt.title("linear reg of all data for Residuals vs. Fitted value of 01110")
+        plt.show()
+
     def f_reg(self):
         newData = scaler_encoding(self.data)
         #print newData[:3]
@@ -289,12 +314,13 @@ class Regression:
                     test_pred = lr.predict(testX)
                     # print test_pred,'pred'
                     test_rmse = rmse(test_pred, testY)
-                    print "Test RMSE is: " + str(test_rmse) + "  ____&&&&&&&____  Training RMSE is: " + str(train_rmse)
+                    # print "Test RMSE is: " + str(test_rmse) + "  ____&&&&&&&____  Training RMSE is: " + str(train_rmse)
                     test_RMSE+=test_rmse
 
                 tr, te = train_RMSE/10, test_RMSE/10
                 all_train_rmse.append(tr)
                 all_test_rmse.append(te)
+            print 'min rmse:', min(all_test_rmse), 'the combination index: ', all_test_rmse.index(min(all_test_rmse)), "alpha", alpha
             self.pltModelMSE(candidates[switcher]+"Regularizer with alpha: "+ str(alpha), all_train_rmse, all_test_rmse)
     
 
@@ -302,7 +328,36 @@ class Regression:
         alphaList = [[0.001, 0.1, 10, 1000],[0.0001, 0.001, 0.01, 0.1]]
         for i in (0,1):
             self.regularizer(i, alphaList[i]) #0:Ridge 1:Lasso
-    
+    #Q1a v partii
+    def getCoefficient(self):
+        newData = scaler_encoding(self.data)
+        unreg_newData = self.OneHotEncoding(newData.as_matrix(), (0,1,1,1,0))
+        reg_newData = self.OneHotEncoding(newData.as_matrix(), (1,1,1,1,1))
+        trainset = unreg_newData.as_matrix()
+        testset = unreg_newData.as_matrix()
+        trainset = standard_scale(trainset)
+        testset = standard_scale(testset)
+        trainY = trainset[:,-1]
+        trainX = np.delete(trainset, -1, 1)
+        testY = testset[:,-1]
+        testX = np.delete(testset, -1, 1)
+        lr = LinearRegression()
+        lr.fit(trainX, trainY)
+        print(lr.coef_)
+
+        trainset_ = unreg_newData.as_matrix()
+        testset_ = unreg_newData.as_matrix()
+        trainset_ = standard_scale(trainset_)
+        testset_ = standard_scale(testset_)
+        trainY = trainset_[:,-1]
+        trainX = np.delete(trainset_, -1, 1)
+        testY = testset_[:,-1]
+        testX = np.delete(testset_, -1, 1)
+        reglr = Ridge(alpha = 0.0001)
+        reglr.fit(trainX, trainY)
+        print(reglr.coef_)
+
+
     #Q2d parti
     def predictBUSizeLinear(self):
         for work_flow_id, sorted_df in self.scaler_data.groupby(['Work-Flow-ID']):
