@@ -67,22 +67,48 @@ class Regression:
         # print self.X, self.Y
         self.labels = self.data.columns
 
+    def linear_regression_whole_Data_Points(self):
+        newData = scaler_encoding(self.data)
 
+        trainset = newData.as_matrix()
+        testset = newData.as_matrix()
+        trainset = standard_scale(trainset)
+        testset = standard_scale(testset)
+        trainY = trainset[:,5]
+        trainX = np.delete(trainset, 5, 1)
+        testY = testset[:,5]
+        testX = np.delete(testset, 5, 1)
+        lr = LinearRegression()
+        lr.fit(trainX, trainY)
+        test_pred = lr.predict(testX)
+
+        colors = ['blue','yellow']
+        plt.plot([min(testY), max(testY)], [min(testY), max(testY)])
+        plt.scatter(testY, test_pred, color=colors)
+        plt.title("linear reg of all data for Fitted values vs. Actual values ")
+        plt.show()
+
+        plt.scatter(test_pred, test_pred-testY, color=colors)
+        plt.title("linear reg of all data for Residuals vs. Fitted value ")
+        plt.show()
 
     def linear_regression(self):
 
         kf = KFold(n_splits=10)
         newData = scaler_encoding(self.data)
         # print newData
+        tr_rmse, te_rmse = [], []
+        average_tr,average_te = 0,0
+        
         for train_index, test_index in kf.split(newData):
             trainset = newData.as_matrix()[train_index]
             testset = newData.as_matrix()[test_index]
             
             trainset = standard_scale(trainset)
             testset = standard_scale(testset)
-            print trainset,'before'
+            # print trainset,'before'
             trainY = trainset[:,5]
-            print trainY, 'after'
+            # print trainY, 'after'
             trainX = np.delete(trainset, 5, 1)
 
             testY = testset[:,5]
@@ -94,22 +120,27 @@ class Regression:
             train_pred = lr.predict(trainX)
             train_rmse = rmse(train_pred, trainY)
             print "Training RMSE is: " + str(train_rmse)
+            tr_rmse.append(train_rmse)
+            average_tr+=train_rmse
 
             test_pred = lr.predict(testX)
             test_rmse = rmse(test_pred, testY)
             print "Test RMSE is: " + str(test_rmse)
-
+            te_rmse.append(test_rmse)
+            average_te+=test_rmse
             # Plot fitted results vs true values
             colors = ['blue','yellow']
             plt.scatter(testY, test_pred, color=colors)
-            plt.title("linear reg with standard scale for Fitted values vs. Actual values ")
+            plt.title("linear reg without standard scale for Fitted values vs. Actual values ")
             plt.show()
 
 
             plt.scatter(test_pred, test_pred-testY, color=colors)
-            plt.title("linear reg with standard scale for Residuals vs. Fitted value ")
+            plt.title("linear reg without standard scale for Residuals vs. Fitted value ")
             plt.show()
             #TO DO, create a plot function to facilitate coding efficiency
+        tr_rmse, te_rmse = np.array(train_rmse)/10.0,np.array(test_rmse)/10.0
+        print average_tr/10.0, average_te/10.0
 
     def f_reg(self):
         newData = scaler_encoding(self.data)
@@ -219,6 +250,7 @@ class Regression:
             tr, te = train_RMSE/10, test_RMSE/10
             all_train_rmse.append(tr)
             all_test_rmse.append(te)
+        print 'min rmse:', min(all_test_rmse), 'the combination index: ', all_test_rmse.index(min(all_test_rmse))-1
         self.pltModelMSE("Linear Regression with 32 combinations of feature encoding", all_train_rmse, all_test_rmse)
     
 
