@@ -14,6 +14,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.cross_validation import cross_val_predict
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
 
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -266,8 +268,8 @@ class Regression:
         for i in (0,1):
             self.regularizer(i, alphaList[i]) #0:Ridge 1:Lasso
     
-    #Q2.4
-    def predictBUSize(self):
+    #Q2d parti
+    def predictBUSizeLinear(self):
         for work_flow_id, sorted_df in self.scaler_data.groupby(['Work-Flow-ID']):
             label = sorted_df['Size of Backup (GB)'].tolist()
             feature = sorted_df.drop(['Work-Flow-ID','Size of Backup (GB)'], axis=1).as_matrix().tolist()
@@ -281,6 +283,37 @@ class Regression:
             fig, coo = plt.subplots()
             coo.scatter(predict, predict - label, s=2)
             plt.title('Residuals vs. Fitted value: work_flow'+work_flow_id)
+            plt.show()
+
+    #Q2d partii
+    def predictBUSizePolynomial(self):
+        kf = KFold(n_splits=10)
+        for work_flow_id, sorted_df in self.scaler_data.groupby(['Work-Flow-ID']):
+            train_rmse,test_rmse = [0]*10, [0]*10
+            for train_index, test_index in kf.split(sorted_df):
+                train = sorted_df.iloc[train_index]
+                test = sorted_df.iloc[test_index]
+                # print train,'train'
+                train_feature = train.drop(['Work-Flow-ID','Size of Backup (GB)'], axis=1).as_matrix().tolist()
+                train_target = train['Size of Backup (GB)'].tolist()
+                test_feature = test.drop(['Work-Flow-ID','Size of Backup (GB)'], axis=1).as_matrix().tolist()
+                test_target = test['Size of Backup (GB)'].tolist()
+                i = 0
+                for degree in range(1,11):
+                    polynomial_regression = PolynomialFeatures(degree)
+                    model = make_pipeline(polynomial_regression, LinearRegression())
+                    model.fit(train_feature, train_target)
+                    train_pred = model.predict(train_feature)
+                    test_pred = model.predict(test_feature)
+                    train_rmse[i] += rmse(train_target, train_pred)
+                    test_rmse[i] += rmse(test_target, test_pred)
+                    i+=1
+            train_rmse, test_rmse = np.array(train_rmse)/10.0,np.array(test_rmse)/10.0
+            plt.plot(range(1,11), train_rmse, label="train_rmse")
+            plt.plot(range(1,11), test_rmse, label="test_rmse")
+            plt.title('work_flow_id: '+ work_flow_id)
+            plt.xlabel('Polynomial Degree')
+            plt.ylabel('RMSE Result')
             plt.show()
     # Q1(1)
     def initialDraw(self, duration):
@@ -321,7 +354,7 @@ class Regression:
                 plt.title(flowID + ', duration = ' + str(duration))
                 plt.xlabel('Days')
                 plt.ylabel('Size of Backup (GB)')
-            plt.legend(loc=1, shadow=True, fancybox=True, prop={'size': 10})
+            plt.legend(loc=1, shadow=True)
             plt.show()
 
     def run_random_forest(self, tree_num=20, max_depth=4, max_features=5):
