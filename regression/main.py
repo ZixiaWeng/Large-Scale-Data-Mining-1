@@ -1,6 +1,7 @@
 from regression import Regression
 import numpy as np
 
+
 if __name__ == '__main__':
     r = Regression()
     # Q1Test
@@ -11,13 +12,13 @@ if __name__ == '__main__':
     # r.plot_buSize(105)
     # r.linear_regression()
     # r.f_reg()
-    # r.random_forest()
+    r.random_forest()
     # r.rsmeUnderCombineEncoding()
     # r.ridgeRegularizer()
     # r.runRidgeAndLasso()
     # r.f_reg()
-    # r.nn()
-    # r.knn()
+    r.nn()
+    r.knn()
     # r.mutual_info_reg()
-    r.predictBUSizeLinear()
+    # r.predictBUSizeLinear()
     # r.predictBUSizePolynomial()
