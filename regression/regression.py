@@ -275,12 +275,11 @@ class Regression:
             feature = sorted_df.drop(['Work-Flow-ID','Size of Backup (GB)'], axis=1).as_matrix().tolist()
             # print feature
             predict = cross_val_predict(LinearRegression(), feature, label, cv=10)
-            fig, coo = plt.subplots()
+            _, coo = plt.subplots()
             coo.scatter(label, predict, s=2)
             plt.title('Fitted values vs. Actual values: work_flow'+work_flow_id)
             plt.show()
-
-            fig, coo = plt.subplots()
+            _, coo = plt.subplots()
             coo.scatter(predict, predict - label, s=2)
             plt.title('Residuals vs. Fitted value: work_flow'+work_flow_id)
             plt.show()

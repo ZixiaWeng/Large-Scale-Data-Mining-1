@@ -19,5 +19,5 @@ if __name__ == '__main__':
     # r.nn()
     # r.knn()
     # r.mutual_info_reg()
-    # r.predictBUSizeLinear()
-    r.predictBUSizePolynomial()
+    r.predictBUSizeLinear()
+    # r.predictBUSizePolynomial()
