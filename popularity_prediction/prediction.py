@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import LinearSVC
+from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
+from sklearn.metrics import roc_curve
+from sklearn.metrics import auc
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -23,6 +31,21 @@ def get_hour_diff(all_tweets):
     initDate = to_date(all_tweets[0]['firstpost_date']).replace(minute=0, second=0)
     endDate = to_date(all_tweets[-1]['firstpost_date'])
     return get_hours(endDate - initDate)
+
+
+def get_location(location):
+    keywords_0 = {'Washington', 'WA'}
+    keywords_1 = {'Massachusetts', 'MA'}
+        
+    for word in keywords_0:
+        if word in location:
+            return 0
+
+    for word in keywords_1:
+        if word in location:
+            return 1
+
+    return -1
 
 
 class Prediction:
@@ -131,3 +154,50 @@ class Prediction:
         # print to_date(self.train_data_superbowl[0]['firstpost_date'])
         # print df_new, 'dsad'
         self.map_hour(df_superbowl)
+
+    def part2(self):
+        all_tweet = []
+        labels = []
+        for tweet in self.train_data_superbowl:
+            location = get_location(tweet['tweet']['user']['location'])
+            content = tweet['tweet']['text']
+            if location in {0, 1}:
+                all_tweet.append(content)
+                labels.append(location)
+
+        count_vect = CountVectorizer()
+        X_train_counts = count_vect.fit_transform(all_tweet)
+
+        tfidf_transformer = TfidfTransformer()
+        X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+
+        # print X_train_tfidf.shape
+
+        all_models = {
+            'nb': MultinomialNB(),
+            'svc': LinearSVC(),
+            # 'ovo': OneVsOneClassifier(svc),
+            # 'ovr': OneVsRestClassifier(svc),
+            'sgd': SGDClassifier()
+        }
+        for name, model in all_models.items():
+            self.location_predcition(X_train_tfidf, labels, model, name)
+
+    def location_predcition(self, data, labels, model, name):
+        model.fit(data, labels)
+        prediction = model.predict(data)
+        fpr, tpr, thresholds = roc_curve(prediction, labels)
+        roc_auc = auc(fpr, tpr)
+        plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
+        plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+        plt.xlabel('FPR')
+        plt.ylabel('TPR')
+        plt.title('ROC Curve with %s' % name)
+        plt.legend(loc='best')
+        plt.show()
+
+
+
+
+
+
