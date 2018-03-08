@@ -179,11 +179,11 @@ class Prediction:
         # print X_train_tfidf.shape
 
         all_models = {
-            'nb': MultinomialNB(),
-            'svc': LinearSVC(),
+            'NB': MultinomialNB(),
+            'SVM': LinearSVC(),
             # 'ovo': OneVsOneClassifier(svc),
             # 'ovr': OneVsRestClassifier(svc),
-            'sgd': SGDClassifier()
+            'SGD': SGDClassifier()
         }
         for name, model in all_models.items():
             self.location_predcition(X_train_tfidf, labels, model, name)
