@@ -8,7 +8,7 @@ import datetime, time
 import pytz
 
 
-def read_tweet(hashtag, max_line=100):
+def read_tweet(hashtag, max_line=1000):
     if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
         raise Exception('no such data!')
 
@@ -39,12 +39,19 @@ class Prediction:
 
     def q1(self):
         all_tweets = read_tweet('gohawks')
+        tweetsLen = len(all_tweets)
+
         initDate = to_date(all_tweets[0]['firstpost_date'])
         endDate = to_date(all_tweets[-1]['firstpost_date'])
         hour_diff = float(get_hours(endDate - initDate))
-        print 'average tweets per hour: %.3f' % (len(all_tweets) / hour_diff)
+        print 'average tweets per hour: %.3f' % (tweetsLen / hour_diff)
 
-        
+        all_follower = 0.0
+        all_retweets = 0.0
+        for dta in all_tweets:
+            all_follower += int(dta['author']['followers'])
+            all_retweets += int(dta['metrics']['citations']['total'])
 
-
+        print 'average followers of users: %.3f' % (all_follower / tweetsLen)
+        print 'average number of retweets: %.3f' % (all_retweets / tweetsLen)
 
