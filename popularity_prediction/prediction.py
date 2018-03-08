@@ -16,7 +16,8 @@ import json
 import pprint as pp
 import datetime
 import pytz
-
+from sklearn import linear_model
+from sklearn.metrics import r2_score
 
 def to_date(timestamp):
     pst_tz = pytz.timezone('US/Pacific')
@@ -146,8 +147,12 @@ class Prediction:
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
-
-
+        reg = linear_model.LinearRegression()
+        reg.fit(data.as_matrix(), target)
+        predict = reg.predict(data.as_matrix())
+        train_errors = reg.score(data.as_matrix(), target)
+        r2_sco = r2_score(target, predict)
+        print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
         # print total_num_of_tweets
         # print total_num_of_follower
         # print time_of_day
