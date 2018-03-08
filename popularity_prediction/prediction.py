@@ -6,8 +6,9 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve
-from sklearn.metrics import auc
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -181,9 +182,9 @@ class Prediction:
         all_models = {
             'NB': MultinomialNB(),
             'SVM': LinearSVC(),
-            # 'ovo': OneVsOneClassifier(svc),
-            # 'ovr': OneVsRestClassifier(svc),
-            'SGD': SGDClassifier()
+            'SGD': SGDClassifier(),
+            'KNN': KNeighborsClassifier(),
+            'TREE': DecisionTreeClassifier()
         }
         for name, model in all_models.items():
             self.location_predcition(X_train_tfidf, labels, model, name)
