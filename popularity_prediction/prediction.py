@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import matplotlib.pyplot as plt
-
+import pandas as pd
 import numpy as np
 import json
 import pprint as pp
@@ -28,6 +28,8 @@ def get_hour_diff(all_tweets):
 class Prediction:
     def __init__(self):
         self.all_data = {}
+        self.train_data_superbowl = self.read_tweet('superbowl')
+        self.train_data_nfl = self.read_tweet('nfl')
 
     def read_tweet(self, hashtag, max_line=1000):
         if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
@@ -80,3 +82,10 @@ class Prediction:
         self.plot_histogram('superbowl')
         self.plot_histogram('nfl')
 
+    def map_hour(self, data):
+        initTime = data['firstpost_date'][0]
+        data['firstpost_date'] = data['firstpost_date'].apply(lambda x: get_hours(x - initTime))
+
+    def linear_regression(self):
+        df_superbowl = pd.DataFrame(self.train_data_superbowl)
+        self.map_hour(df_superbowl)
