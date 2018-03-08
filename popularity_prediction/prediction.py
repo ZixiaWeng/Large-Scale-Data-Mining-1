@@ -110,6 +110,19 @@ class Prediction:
         time_of_day[0] = initDate.hour
         for i in range(1, len(time_of_day)):
             time_of_day[i] = (time_of_day[i-1] + 1) % 24
+
+        data_dict = {
+            'tweets_num': total_num_of_tweets,
+            'retweets_num': total_num_of_retweets,
+            'followers_num': total_num_of_follower,
+            'followers_num_max': max_num_follower,
+            'time_of_day': time_of_day
+        }
+
+        data = pd.DataFrame(data_dict)
+        print data
+
+
         # print total_num_of_tweets
         # print total_num_of_follower
         # print time_of_day
