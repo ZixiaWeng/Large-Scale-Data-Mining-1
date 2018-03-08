@@ -6,7 +6,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
-from sklearn.metrics import roc_curve
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve
 from sklearn.metrics import auc
 
 import matplotlib.pyplot as plt
@@ -55,7 +55,7 @@ class Prediction:
         self.train_data_superbowl = self.read_tweet('superbowl')
         self.train_data_nfl = self.read_tweet('nfl')
 
-    def read_tweet(self, hashtag, max_line=1000):
+    def read_tweet(self, hashtag, max_line=10000):
         if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
             raise Exception('no such data!')
 
@@ -191,8 +191,18 @@ class Prediction:
     def location_predcition(self, data, labels, model, name):
         model.fit(data, labels)
         prediction = model.predict(data)
-        fpr, tpr, thresholds = roc_curve(prediction, labels)
+        acc = np.mean(prediction == labels)
+        fpr, tpr, thresholds = roc_curve(labels, prediction)
+        report = classification_report(labels, prediction, target_names=['WA', 'MA'])
+        matrix = confusion_matrix(labels, prediction)
         roc_auc = auc(fpr, tpr)
+
+        print "Accuracy: %.2f" % acc
+        print "Classification Report:"
+        print report
+        print "Confusion Matrix:"
+        print matrix
+
         plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
         plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
         plt.xlabel('FPR')
