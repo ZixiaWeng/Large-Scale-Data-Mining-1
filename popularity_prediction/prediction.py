@@ -37,6 +37,7 @@ class Prediction:
     def __init__(self):
         self.train_data_superbowl = read_tweet('superbowl')
         self.train_data_nfl = read_tweet('nfl')
+        # self.linear_regression()
 
     def q1(self):
         all_tweets = read_tweet('gohawks')
@@ -58,8 +59,14 @@ class Prediction:
 
     def map_hour(self, data):
         initTime = data['firstpost_date'][0]
-        data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(x - initTime))
+        data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(to_date(x) - to_date(initTime)))
 
     def linear_regression(self):
         df_superbowl = pd.DataFrame(self.train_data_superbowl)
+        df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
+        for dta in df_superbowl:
+            new_entry = [1,2,3,4,5]
+            df_new.loc[len(df_new)] = new_entry
+            pass
+        print df_new,'dsad'
         self.map_hour(df_superbowl)
