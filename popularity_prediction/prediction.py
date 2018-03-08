@@ -120,7 +120,9 @@ class Prediction:
         }
 
         data = pd.DataFrame(data_dict)
-        print data
+        target = list(data['tweets_num'])
+        target.insert(0, 0)
+        target = target[:-1]
 
 
         # print total_num_of_tweets
