@@ -20,7 +20,7 @@ def get_hours(data):
 
 
 def get_hour_diff(all_tweets):
-    initDate = to_date(all_tweets[0]['firstpost_date'])
+    initDate = to_date(all_tweets[0]['firstpost_date']).replace(minute=0, second=0)
     endDate = to_date(all_tweets[-1]['firstpost_date'])
     return get_hours(endDate - initDate)
 
@@ -53,7 +53,7 @@ class Prediction:
 
     def plot_histogram(self, hashtag):
         all_tweets = self.read_tweet(hashtag)
-        initDate = to_date(all_tweets[0]['firstpost_date'])
+        initDate = to_date(all_tweets[0]['firstpost_date']).replace(minute=0, second=0)
         hour_diff = get_hour_diff(all_tweets)
         X = range(0, int(hour_diff) + 1)
         Y = [0] * (int(hour_diff) + 1)
@@ -90,6 +90,7 @@ class Prediction:
     def linear_regression(self):
         df_superbowl = pd.DataFrame(self.train_data_superbowl)
         df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
+        # intial_time = df_superbowl[][0]
         for dta in df_superbowl:
             new_entry = [1, 2, 3, 4, 5]
             df_new.loc[len(df_new)] = new_entry
