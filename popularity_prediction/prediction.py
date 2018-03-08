@@ -4,7 +4,8 @@
 import numpy as np
 import json
 import pprint as pp
-
+import datetime, time
+import pytz
 
 def read_tweet(hashtag, max_line=100):
     if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
@@ -25,4 +26,19 @@ def read_tweet(hashtag, max_line=100):
 class Prediction:
     def __init__(self):
         self.data = read_tweet('gohawks')
-        pp.pprint(self.data)
+        date = self.get_date()
+        # pp.pprint(self.data)
+
+    def get_date(self):
+    	date = []
+    	initDate = self.data[0]['firstpost_date']
+    	for dta in self.data:
+    		temp = dta['firstpost_date']
+    		# print temp
+    		pst_tz = pytz.timezone('US/Pacific') 
+    		datetime.datetime.fromtimestamp(temp, pst_tz)
+    		print datetime,'datetime'
+    		date.append(datetime)
+
+
+
