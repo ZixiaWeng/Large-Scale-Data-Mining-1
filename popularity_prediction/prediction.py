@@ -26,19 +26,33 @@ def read_tweet(hashtag, max_line=100):
 class Prediction:
     def __init__(self):
         self.data = read_tweet('gohawks')
-        date = self.get_date()
+        # date = self.get_date()
+        self.getAvrgFollower()
+        self.getAvrgRetweets()
         # pp.pprint(self.data)
 
     def get_date(self):
-    	date = []
-    	initDate = self.data[0]['firstpost_date']
-    	for dta in self.data:
-    		temp = dta['firstpost_date']
-    		# print temp
-    		pst_tz = pytz.timezone('US/Pacific') 
-    		datetime.datetime.fromtimestamp(temp, pst_tz)
-    		print datetime,'datetime'
-    		date.append(datetime)
+        date = []
+        initDate = self.data[0]['firstpost_date']
+        for dta in self.data:
+            temp = dta['firstpost_date']
+            # print temp
+            pst_tz = pytz.timezone('US/Pacific') 
+            datetime.datetime.fromtimestamp(temp, pst_tz)
+            print datetime,'datetime'
+            date.append(datetime)
 
+    def getAvrgFollower(self):
+        tweetsLen = len(self.data)
+        temp = 0
+        for dta in self.data:
+            temp += int(dta['author']['followers'])
+        print temp/tweetsLen,'average followers of users'
 
+    def getAvrgRetweets(self):
+        tweetsLen = len(self.data)
+        temp = 0
+        for dta in self.data:
+            temp += int(dta['metrics']['citations']['total'])
+        print temp/tweetsLen,'average number of retweets'
 
