@@ -1,27 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import json
 import pprint as pp
-import datetime, time
+import datetime
 import pytz
-
-
-def read_tweet(hashtag, max_line=1000):
-    if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
-        raise Exception('no such data!')
-
-    file = './tweet_data/tweets_#%s.txt' % hashtag
-    tweets = []
-    counter = 0
-    for line in open(file, 'r'):
-        data = json.loads(line)
-        tweets.append(data)
-        counter += 1
-        if counter > max_line:
-            break
-    return tweets
 
 
 def to_date(timestamp):
@@ -33,19 +19,55 @@ def get_hours(data):
     return data.total_seconds() / 3600.0
 
 
+def get_hour_diff(all_tweets):
+    initDate = to_date(all_tweets[0]['firstpost_date'])
+    endDate = to_date(all_tweets[-1]['firstpost_date'])
+    return get_hours(endDate - initDate)
+
+
 class Prediction:
     def __init__(self):
-        self.train_data_superbowl = read_tweet('superbowl')
-        self.train_data_nfl = read_tweet('nfl')
-        # self.linear_regression()
+        self.all_data = {}
+        self.train_data_superbowl = self.read_tweet('superbowl')
+        self.train_data_nfl = self.read_tweet('nfl')
+
+    def read_tweet(self, hashtag, max_line=1000):
+        if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
+            raise Exception('no such data!')
+
+        if hashtag in self.all_data.keys():
+            return self.all_data[hashtag]
+
+        file = './tweet_data/tweets_#%s.txt' % hashtag
+        tweets = []
+        counter = 0
+        for line in open(file, 'r'):
+            data = json.loads(line)
+            tweets.append(data)
+            counter += 1
+            if (max_line > 0 and counter > max_line):
+                break
+
+        self.all_data[hashtag] = tweets
+        return tweets
+
+    def plot_histogram(self, hashtag):
+        all_tweets = self.read_tweet(hashtag)
+        initDate = to_date(all_tweets[0]['firstpost_date'])
+        hour_diff = get_hour_diff(all_tweets)
+        X = range(0, int(hour_diff) + 1)
+        Y = [0] * (int(hour_diff) + 1)
+        for tweet in all_tweets:
+            index = int(get_hours(to_date(tweet['firstpost_date']) - initDate))
+            Y[index] += 1
+        plt.bar(X, Y, width=1)
+        plt.title('%s number of tweets per hour' % hashtag)
+        plt.show()
 
     def q1(self):
-        all_tweets = read_tweet('gohawks')
+        all_tweets = self.read_tweet('gohawks')
         tweetsLen = len(all_tweets)
-
-        initDate = to_date(all_tweets[0]['firstpost_date'])
-        endDate = to_date(all_tweets[-1]['firstpost_date'])
-        hour_diff = float(get_hours(endDate - initDate))
+        hour_diff = get_hour_diff(all_tweets)
         print 'average tweets per hour: %.3f' % (tweetsLen / hour_diff)
 
         all_follower = 0.0
@@ -57,16 +79,20 @@ class Prediction:
         print 'average followers of users: %.3f' % (all_follower / tweetsLen)
         print 'average number of retweets: %.3f' % (all_retweets / tweetsLen)
 
+        self.plot_histogram('superbowl')
+        self.plot_histogram('nfl')
+
     def map_hour(self, data):
         initTime = data['firstpost_date'][0]
         data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(to_date(x) - to_date(initTime)))
+
 
     def linear_regression(self):
         df_superbowl = pd.DataFrame(self.train_data_superbowl)
         df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
         for dta in df_superbowl:
-            new_entry = [1,2,3,4,5]
+            new_entry = [1, 2, 3, 4, 5]
             df_new.loc[len(df_new)] = new_entry
             pass
-        print df_new,'dsad'
+        print df_new, 'dsad'
         self.map_hour(df_superbowl)
