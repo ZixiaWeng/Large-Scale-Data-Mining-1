@@ -1,10 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import json
+import pprint as pp
 
 
 class Prediction:
     def __init__(self):
-        # self.train_data_gohawks = np.loadtxt('./tweet_data/tweets_#gopatriots.txt', dtype=str)
-        with open('./tweet_data/tweets_#nfl.txt') as json_file: 
-            data = json.load(json_file)
-            print data
+        file = './tweet_data/tweets_#nfl.txt'
+        tweets = []
+        for line in open(file, 'r'):
+            data = json.loads(line)
+            tweets.append(data)
+            pp.pprint(data)
