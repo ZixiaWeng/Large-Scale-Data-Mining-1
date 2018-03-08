@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import pandas as pd
 import numpy as np
 import json
 import pprint as pp
@@ -35,7 +35,8 @@ def get_hours(data):
 
 class Prediction:
     def __init__(self):
-        pass
+        self.train_data_superbowl = read_tweet('superbowl')
+        self.train_data_nfl = read_tweet('nfl')
 
     def q1(self):
         all_tweets = read_tweet('gohawks')
@@ -55,3 +56,10 @@ class Prediction:
         print 'average followers of users: %.3f' % (all_follower / tweetsLen)
         print 'average number of retweets: %.3f' % (all_retweets / tweetsLen)
 
+    def map_hour(self, data):
+        initTime = data['firstpost_date'][0]
+        data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(x - initTime))
+
+    def linear_regression(self):
+        df_superbowl = pd.DataFrame(self.train_data_superbowl)
+        self.map_hour(df_superbowl)
