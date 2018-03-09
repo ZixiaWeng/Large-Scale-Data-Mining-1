@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import LinearSVC
+from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,13 +37,28 @@ def get_hour_diff(all_tweets):
     return get_hours(endDate - initDate)
 
 
+def get_location(location):
+    keywords_0 = {'Washington', 'WA'}
+    keywords_1 = {'Massachusetts', 'MA'}
+        
+    for word in keywords_0:
+        if word in location:
+            return 0
+
+    for word in keywords_1:
+        if word in location:
+            return 1
+
+    return -1
+
+
 class Prediction:
     def __init__(self):
         self.all_data = {}
         self.train_data_superbowl = self.read_tweet('superbowl')
         self.train_data_nfl = self.read_tweet('nfl')
 
-    def read_tweet(self, hashtag, max_line=1000):
+    def read_tweet(self, hashtag, max_line=10000):
         if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
             raise Exception('no such data!')
 
@@ -137,6 +161,7 @@ class Prediction:
         # print time_of_day
         # print to_date(self.train_data_superbowl[0]['firstpost_date'])
         # print df_new, 'dsad'
+
         # print self.train_data_superbowl[0]['firstpost_date']
         tz = to_date(self.train_data_superbowl[0]['firstpost_date']).tzinfo
         dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
@@ -213,5 +238,63 @@ class Prediction:
         score_las = r2_score(predicted, test_target)
 
         return score_lm, score_r, score_las
+
+
+
+    def part2(self):
+        all_tweet = []
+        labels = []
+        for tweet in self.train_data_superbowl:
+            location = get_location(tweet['tweet']['user']['location'])
+            content = tweet['tweet']['text']
+            if location in {0, 1}:
+                all_tweet.append(content)
+                labels.append(location)
+
+        count_vect = CountVectorizer()
+        X_train_counts = count_vect.fit_transform(all_tweet)
+
+        tfidf_transformer = TfidfTransformer()
+        X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+
+        # print X_train_tfidf.shape
+
+        all_models = {
+            'NB': MultinomialNB(),
+            'SVM': LinearSVC(),
+            'SGD': SGDClassifier(),
+            'KNN': KNeighborsClassifier(),
+            'TREE': DecisionTreeClassifier()
+        }
+        for name, model in all_models.items():
+            self.location_predcition(X_train_tfidf, labels, model, name)
+
+    def location_predcition(self, data, labels, model, name):
+        model.fit(data, labels)
+        prediction = model.predict(data)
+        acc = np.mean(prediction == labels)
+        fpr, tpr, thresholds = roc_curve(labels, prediction)
+        report = classification_report(labels, prediction, target_names=['WA', 'MA'])
+        matrix = confusion_matrix(labels, prediction)
+        roc_auc = auc(fpr, tpr)
+
+        print "Accuracy: %.2f" % acc
+        print "Classification Report:"
+        print report
+        print "Confusion Matrix:"
+        print matrix
+
+        plt.plot(fpr, tpr, color='blue', linewidth=2.0, label='ROC (Area is %0.2f)' % roc_auc)
+        plt.plot([0, 1], [0, 1], color='yellow', linewidth=2.0)
+        plt.xlabel('FPR')
+        plt.ylabel('TPR')
+        plt.title('ROC Curve with %s' % name)
+        plt.legend(loc='best')
+        plt.show()
+
+
+
+
+
 
 
