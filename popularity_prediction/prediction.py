@@ -240,6 +240,58 @@ class Prediction:
         return score_lm, score_r, score_las
 
 
+    def q1_3(self):
+        initDate = to_date(self.train_data_superbowl[0]['firstpost_date']).replace(minute=0, second=0)
+        hour_diff = get_hour_diff(self.train_data_superbowl)
+        total_num_of_tweets = [0] * (int(hour_diff) + 1)
+        total_num_of_retweets = [0] * (int(hour_diff) + 1)
+        total_num_of_follower = [0] * (int(hour_diff) + 1)
+        max_num_follower = [0] * (int(hour_diff) + 1)
+        time_of_day = [0] * (int(hour_diff) + 1)
+        total_favourite_num = [0] * (int(hour_diff) + 1)
+        for dta in self.train_data_superbowl:
+            index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
+            total_favourite_num[index] += dta['tweet']['user']['favourites_count']
+            total_num_of_tweets[index] += 1
+            total_num_of_retweets[index] += dta['metrics']['citations']['total']
+            total_num_of_follower[index] += dta['author']['followers']
+            # max_num_follower[index] = max(max_num_follower[index], dta['author']['followers'])
+            time_of_day[index] = to_date(dta['firstpost_date']).hour
+        time_of_day[0] = initDate.hour
+        for i in range(1, len(time_of_day)):
+            time_of_day[i] = (time_of_day[i-1] + 1) % 24
+
+        data_dict = {
+            'tweets_num': total_num_of_tweets,
+            'retweets_num': total_num_of_retweets,
+            'followers_num': total_num_of_follower,
+            'favourite_num': total_favourite_num,
+            'time_of_day': time_of_day
+        }
+
+        data_ = pd.DataFrame(data_dict)
+        target = list(data_['tweets_num'])
+        target.insert(0, 0)  # 412
+        target = target[:-1] # 411
+        reg = linear_model.LinearRegression()
+
+        for feature in ['tweets_num','retweets_num','favourite_num']:
+            data = data_[[feature]]
+            reg.fit(data.as_matrix(), target)
+            predict = reg.predict(data.as_matrix())
+            train_errors = reg.score(data.as_matrix(), target)
+            r2_sco = r2_score(target, predict)
+            print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
+            fig = plt.figure()
+            ax1 = fig.add_subplot(111)
+            # print len(self.train_data_superbowl), len(target_), len(target)
+            plt.plot((0,0), (1,1), linewidth=2.0)
+            plt.ylabel("real # of tweets for next hour")
+            plt.xlabel("predict # of tweets for next hour")
+            plt.title("predictant versus value of tweets for next hour with feature: "+ feature)
+            ax1.scatter(target, predict, s=3, c='b', marker="s", label='')
+            plt.legend(loc='upper left');
+            plt.show()
 
     def part2(self):
         all_tweet = []
