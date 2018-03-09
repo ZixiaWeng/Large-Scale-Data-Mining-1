@@ -7,8 +7,10 @@ import numpy as np
 import json
 import pprint as pp
 import datetime
+import time
 import pytz
 from sklearn import linear_model
+from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score
 
 def to_date(timestamp):
@@ -135,4 +137,81 @@ class Prediction:
         # print time_of_day
         # print to_date(self.train_data_superbowl[0]['firstpost_date'])
         # print df_new, 'dsad'
-        self.map_hour(df_superbowl)
+        # print self.train_data_superbowl[0]['firstpost_date']
+        tz = to_date(self.train_data_superbowl[0]['firstpost_date']).tzinfo
+        dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
+        index_feb_1_8am = int(get_hours(dt - initDate))
+        dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
+        index_feb_1_8pm = int(get_hours(dt - initDate))
+        data_I = data[:index_feb_1_8am]
+        data_II = data[index_feb_1_8am:index_feb_1_8pm]
+        data_III = data[index_feb_1_8pm:]
+        target_I = target[:index_feb_1_8am]
+        target_II = target[index_feb_1_8am:index_feb_1_8pm]
+        target_III = target[index_feb_1_8pm:]
+
+
+        kf = KFold(n_splits=10)
+        # window I
+        errors_I_lm = []
+        errors_I_ridge = []
+        errors_I_lasso = []
+        for train_index, test_index in kf.split(data_I):
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
+            errors_I_lm.append(score1)
+            errors_I_ridge.append(score2)
+            errors_I_lasso.append(score3)
+        print np.mean(errors_I_lm)
+        print np.mean(errors_I_ridge)
+        print np.mean(errors_I_lasso)
+
+        # window II
+        errors_II_lm = []
+        errors_II_ridge = []
+        errors_II_lasso = []
+        for train_index, test_index in kf.split(data_I):
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
+            errors_II_lm.append(score1)
+            errors_II_ridge.append(score2)
+            errors_II_lasso.append(score3)
+        print np.mean(errors_II_lm)
+        print np.mean(errors_II_ridge)
+        print np.mean(errors_II_lasso)
+
+        # window III
+        errors_III_lm = []
+        errors_III_ridge = []
+        errors_III_lasso = []
+        for train_index, test_index in kf.split(data_I):
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
+            errors_III_lm.append(score1)
+            errors_III_ridge.append(score2)
+            errors_III_lasso.append(score3)
+        print np.mean(errors_III_lm)
+        print np.mean(errors_III_ridge)
+        print np.mean(errors_III_lasso)
+
+    def test_with_3_models(self, train_index, test_index, data, target):
+        train_data = data.iloc[train_index]
+        test_data = data.iloc[test_index]
+        train_target = pd.DataFrame(target).iloc[train_index]
+        test_target = pd.DataFrame(target).iloc[test_index]
+        # linear regression
+        lm = linear_model.LinearRegression()
+        lm.fit(train_data.as_matrix(), train_target)
+        predicted = lm.predict(test_data)
+        score_lm = r2_score(predicted, test_target)
+        # ridge
+        r = linear_model.Ridge(alpha = 0.01)
+        r.fit(train_data.as_matrix(), train_target)
+        predicted = r.predict(test_data)
+        score_r = r2_score(predicted, test_target)
+        # lasso
+        las = linear_model.Lasso(alpha = 0.01)
+        las.fit(train_data.as_matrix(), train_target)
+        predicted = las.predict(test_data)
+        score_las = r2_score(predicted, test_target)
+
+        return score_lm, score_r, score_las
+
+
