@@ -195,7 +195,7 @@ class Prediction:
         errors_II_ridge = []
         errors_II_lasso = []
         for train_index, test_index in kf.split(data_I):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_II, target_II)
             errors_II_lm.append(score1)
             errors_II_ridge.append(score2)
             errors_II_lasso.append(score3)
@@ -208,7 +208,7 @@ class Prediction:
         errors_III_ridge = []
         errors_III_lasso = []
         for train_index, test_index in kf.split(data_I):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_III, target_III)
             errors_III_lm.append(score1)
             errors_III_ridge.append(score2)
             errors_III_lasso.append(score3)
