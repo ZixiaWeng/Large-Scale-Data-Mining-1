@@ -22,6 +22,10 @@ from sklearn import linear_model
 from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score
 
+
+all_hashtags = {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}
+
+
 def to_date(timestamp):
     pst_tz = pytz.timezone('US/Pacific')
     return datetime.datetime.fromtimestamp(timestamp, pst_tz)
@@ -40,7 +44,7 @@ def get_hour_diff(all_tweets):
 def get_location(location):
     keywords_0 = {'Washington', 'WA'}
     keywords_1 = {'Massachusetts', 'MA'}
-        
+
     for word in keywords_0:
         if word in location:
             return 0
@@ -52,14 +56,100 @@ def get_location(location):
     return -1
 
 
+def init_and_last_time(data):
+    return data[0]['firstpost_date'], data[-1]['firstpost_date']
+
+
+def list_of_json_to_df(arr):
+    print len(arr)
+    # df_superbowl = pd.DataFrame(arr)
+    # df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
+    initDate = to_date(arr[0]['firstpost_date']).replace(minute=0, second=0)
+    hour_diff = get_hour_diff(arr)
+
+    total_num_of_tweets = [0] * (int(hour_diff) + 1)
+    total_num_of_retweets = [0] * (int(hour_diff) + 1)
+    total_num_of_follower = [0] * (int(hour_diff) + 1)
+    max_num_follower = [0] * (int(hour_diff) + 1)
+    time_of_day = [0] * (int(hour_diff) + 1)
+
+    for dta in arr:
+        # new_entry = [1, 2, 3, 4, 5]
+        # df_new.loc[len(df_new)] = new_entry
+        # pass
+        index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
+        print index
+        total_num_of_tweets[index] += 1
+        total_num_of_retweets[index] += dta['metrics']['citations']['total']
+        total_num_of_follower[index] += dta['author']['followers']
+        max_num_follower[index] = max(max_num_follower[index], dta['author']['followers'])
+        # time_of_day[index] = to_date(dta['firstpost_date']).hour
+        time_of_day[0] = initDate.hour
+        for i in range(1, len(time_of_day)):
+            time_of_day[i] = (time_of_day[i-1] + 1) % 24
+
+    data_dict = {
+        'tweets_num': total_num_of_tweets,
+        'retweets_num': total_num_of_retweets,
+        'followers_num': total_num_of_follower,
+        'followers_num_max': max_num_follower,
+        'time_of_day': time_of_day
+    }
+    return pd.DataFrame(data_dict), initDate
+
+
+def find_last_tweet(arr):
+    last_time = -1
+    last_tweet = None
+    for tweet in arr:
+        print type(tweet)
+        if int(tweet['firstpost_date']) > last_time:
+            last_time = tweet['firstpost_date']
+            last_tweet = tweet
+
+    return last_tweet
+
+
 class Prediction:
     def __init__(self):
         self.all_data = {}
-        self.train_data_superbowl = self.read_tweet('superbowl')
-        self.train_data_nfl = self.read_tweet('nfl')
+        for hashtag in all_hashtags:
+            self.all_data[hashtag] = self.read_tweet(hashtag)
 
-    def read_tweet(self, hashtag, max_line=10000):
-        if hashtag not in {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}:
+        self.all_data['superbowl'] = self.read_tweet('superbowl')
+
+    def get_combined_data(self):
+        # min_init, max_last = 999999999999999, 0
+        # min_type, max_type = None, None
+        # for hashtag in all_hashtags:
+        #     data = self.read_tweet(hashtag)
+        #     init, last = init_and_last_time(data)
+        #     if init < min_init:
+        #         min_init = init
+        #         min_type = hashtag
+
+        #     if last > max_last:
+        #         max_last = last
+        #         max_type = hashtag
+
+        # print 'max: ' + max_type
+        # print 'min: ' + min_type
+
+        ordered_hashtags = ['gopatriots', 'gohawks', 'nfl', 'patriots', 'sb49', 'superbowl']
+        combined_data = []
+        for hashtag in ordered_hashtags:
+            combined_data.extend(self.all_data[hashtag])
+
+        big_six = list(map(lambda x: x[-1], self.all_data.items()))
+        # pp.pprint((big_six))
+        pp.pprint(len(big_six[0]))
+        combined_data.append(find_last_tweet(big_six))
+        # print(type(combined_data))
+
+        return combined_data
+
+    def read_tweet(self, hashtag, max_line=3000):
+        if hashtag not in all_hashtags:
             raise Exception('no such data!')
 
         if hashtag in self.all_data.keys():
@@ -115,38 +205,8 @@ class Prediction:
 
 
     def linear_regression(self):
-        df_superbowl = pd.DataFrame(self.train_data_superbowl)
-        df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
-        initDate = to_date(self.train_data_superbowl[0]['firstpost_date']).replace(minute=0, second=0)
-        hour_diff = get_hour_diff(self.train_data_superbowl)
-        total_num_of_tweets = [0] * (int(hour_diff) + 1)
-        total_num_of_retweets = [0] * (int(hour_diff) + 1)
-        total_num_of_follower = [0] * (int(hour_diff) + 1)
-        max_num_follower = [0] * (int(hour_diff) + 1)
-        time_of_day = [0] * (int(hour_diff) + 1)
-        for dta in self.train_data_superbowl:
-            # new_entry = [1, 2, 3, 4, 5]
-            # df_new.loc[len(df_new)] = new_entry
-            # pass
-            index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
-            total_num_of_tweets[index] += 1
-            total_num_of_retweets[index] += dta['metrics']['citations']['total']
-            total_num_of_follower[index] += dta['author']['followers']
-            max_num_follower[index] = max(max_num_follower[index], dta['author']['followers'])
-            # time_of_day[index] = to_date(dta['firstpost_date']).hour
-        time_of_day[0] = initDate.hour
-        for i in range(1, len(time_of_day)):
-            time_of_day[i] = (time_of_day[i-1] + 1) % 24
+        data, initDate = list_of_json_to_df(self.all_data['superbowl'])
 
-        data_dict = {
-            'tweets_num': total_num_of_tweets,
-            'retweets_num': total_num_of_retweets,
-            'followers_num': total_num_of_follower,
-            'followers_num_max': max_num_follower,
-            'time_of_day': time_of_day
-        }
-
-        data = pd.DataFrame(data_dict)
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
@@ -159,11 +219,11 @@ class Prediction:
         # print total_num_of_tweets
         # print total_num_of_follower
         # print time_of_day
-        # print to_date(self.train_data_superbowl[0]['firstpost_date'])
+        # print to_date(self.all_data['superbowl'][0]['firstpost_date'])
         # print df_new, 'dsad'
 
-        # print self.train_data_superbowl[0]['firstpost_date']
-        tz = to_date(self.train_data_superbowl[0]['firstpost_date']).tzinfo
+        # print self.all_data['superbowl'][0]['firstpost_date']
+        tz = to_date(self.all_data['superbowl'][0]['firstpost_date']).tzinfo
         dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
         index_feb_1_8am = int(get_hours(dt - initDate))
         dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
@@ -216,6 +276,28 @@ class Prediction:
         print np.mean(errors_III_ridge)
         print np.mean(errors_III_lasso)
 
+    def run_combined_data(self):
+        combined_data_list = self.get_combined_data()
+        combined_data, initDate = list_of_json_to_df(combined_data_list)
+        combined_target = list(combined_data['tweets_num'])
+        combined_target.insert(0, 0)
+        combined_target = combined_target[:-1]
+
+        print len(combined_data), len(combined_target)
+
+        errors_I_lm = []
+        errors_I_ridge = []
+        errors_I_lasso = []
+        kf = KFold(n_splits=10)
+        for train_index, test_index in kf.split(combined_data):
+            score1, score2, score3 = self.test_with_3_models(train_index, test_index, combined_data, combined_target)
+            errors_I_lm.append(score1)
+            errors_I_ridge.append(score2)
+            errors_I_lasso.append(score3)
+        print np.mean(errors_I_lm)
+        print np.mean(errors_I_ridge)
+        print np.mean(errors_I_lasso)
+
     def test_with_3_models(self, train_index, test_index, data, target):
         train_data = data.iloc[train_index]
         test_data = data.iloc[test_index]
@@ -241,15 +323,15 @@ class Prediction:
 
 
     def q1_3(self):
-        initDate = to_date(self.train_data_superbowl[0]['firstpost_date']).replace(minute=0, second=0)
-        hour_diff = get_hour_diff(self.train_data_superbowl)
+        initDate = to_date(self.all_data['superbowl'][0]['firstpost_date']).replace(minute=0, second=0)
+        hour_diff = get_hour_diff(self.all_data['superbowl'])
         total_num_of_tweets = [0] * (int(hour_diff) + 1)
         total_num_of_retweets = [0] * (int(hour_diff) + 1)
         total_num_of_follower = [0] * (int(hour_diff) + 1)
         max_num_follower = [0] * (int(hour_diff) + 1)
         time_of_day = [0] * (int(hour_diff) + 1)
         total_favourite_num = [0] * (int(hour_diff) + 1)
-        for dta in self.train_data_superbowl:
+        for dta in self.all_data['superbowl']:
             index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
             total_favourite_num[index] += dta['tweet']['user']['favourites_count']
             total_num_of_tweets[index] += 1
@@ -270,6 +352,8 @@ class Prediction:
         }
 
         data_ = pd.DataFrame(data_dict)
+
+
         target = list(data_['tweets_num'])
         target.insert(0, 0)  # 412
         target = target[:-1] # 411
@@ -284,7 +368,7 @@ class Prediction:
             print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
             fig = plt.figure()
             ax1 = fig.add_subplot(111)
-            # print len(self.train_data_superbowl), len(target_), len(target)
+            # print len(self.all_data['superbowl']), len(target_), len(target)
             plt.plot((0,0), (1,1), linewidth=2.0)
             plt.ylabel("real # of tweets for next hour")
             plt.xlabel("predict # of tweets for next hour")
@@ -296,7 +380,7 @@ class Prediction:
     def part2(self):
         all_tweet = []
         labels = []
-        for tweet in self.train_data_superbowl:
+        for tweet in self.all_data['superbowl']:
             location = get_location(tweet['tweet']['user']['location'])
             content = tweet['tweet']['text']
             if location in {0, 1}:
