@@ -102,10 +102,9 @@ def find_last_tweet(arr):
     last_time = -1
     last_tweet = None
     for tweet in arr:
-        print type(tweet[-1])
-        if int(tweet[-1]['firstpost_date']) > last_time:
-            last_time = tweet[-1]['firstpost_date']
-            last_tweet = tweet[-1]
+        if int(tweet['firstpost_date']) > last_time:
+            last_time = tweet['firstpost_date']
+            last_tweet = tweet
 
     return last_tweet
 
@@ -140,7 +139,7 @@ class Prediction:
         for hashtag in ordered_hashtags:
             combined_data.extend(self.all_data[hashtag])
 
-        big_six = list(map(lambda x: x[-1], self.all_data.items()))
+        big_six = list(map(lambda x: x[-1], self.all_data.values()))
         #print (big_six[0][3000]['firstpost_date'])
         #print (big_six[0][3000]['firstpost_date'])
         
