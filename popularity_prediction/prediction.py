@@ -139,7 +139,7 @@ class Prediction:
         for hashtag in ordered_hashtags:
             combined_data.extend(self.all_data[hashtag])
 
-        big_six = list(map(lambda x: x[-1], self.all_data.values()))
+        big_six = map(lambda x: x[-1], self.all_data.values())
         #print (big_six[0][3000]['firstpost_date'])
         #print (big_six[0][3000]['firstpost_date'])
         
