@@ -383,21 +383,19 @@ class Prediction:
             print filename
             tweets = [[],[],[],[],[],[]]
             tweets_df = []
-            if filename == 'sample2_period2.txt':
-                with open(path+filename) as f:
-                    line = f.readline()
-                    first_data = json.loads(line)
-                    initDate = to_date(first_data['firstpost_date']).replace(minute=0, second=0)
-                for line in open(path+filename, 'r'):
-                    data = json.loads(line)
-                    index = int(get_hours(to_date(data['firstpost_date']) - initDate))
-                    tweets[index].append(data)
-                for i in range(0,5):
-                    tweets_df.append(list_of_json_to_df(tweets[i])[0])
+            with open(path+filename) as f:
+                line = f.readline()
+                first_data = json.loads(line)
+                initDate = to_date(first_data['firstpost_date']).replace(minute=0, second=0)
+            for line in open(path+filename, 'r'):
+                data = json.loads(line)
+                index = int(get_hours(to_date(data['firstpost_date']) - initDate))
+                tweets[index].append(data)
+            for i in range(0,5):
+                tweets_df.append(list_of_json_to_df(tweets[i])[0])
 
-                df = pd.concat(tweets_df, axis=1, ignore_index=True)
-                print df
-                return df
+            df = pd.concat(tweets_df, axis=1, ignore_index=True)
+            print df
 
     def part2(self):
         all_tweet = []
