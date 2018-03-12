@@ -119,31 +119,12 @@ class Prediction:
         self.all_data['superbowl'] = self.read_tweet('superbowl')
 
     def get_combined_data(self):
-        # min_init, max_last = 999999999999999, 0
-        # min_type, max_type = None, None
-        # for hashtag in all_hashtags:
-        #     data = self.read_tweet(hashtag)
-        #     init, last = init_and_last_time(data)
-        #     if init < min_init:
-        #         min_init = init
-        #         min_type = hashtag
-
-        #     if last > max_last:
-        #         max_last = last
-        #         max_type = hashtag
-
-        # print 'max: ' + max_type
-        # print 'min: ' + min_type
-
         ordered_hashtags = ['gopatriots', 'gohawks', 'nfl', 'patriots', 'sb49', 'superbowl']
         combined_data = []
         for hashtag in ordered_hashtags:
             combined_data.extend(self.all_data[hashtag])
 
         big_six = map(lambda x: x[-1], self.all_data.values())
-        #print (big_six[0][3000]['firstpost_date'])
-        #print (big_six[0][3000]['firstpost_date'])
-        
         combined_data.append(find_last_tweet(big_six))
 
         return combined_data
@@ -423,15 +404,25 @@ class Prediction:
             'TREE': DecisionTreeClassifier()
         }
         for name, model in all_models.items():
-            self.location_predcition(X_train_tfidf, labels, model, name)
+            # print type(pd.DataFrame(X_train_tfidf))
+            self.location_predcition(X_train_tfidf, np.array(labels), model, name)
 
     def location_predcition(self, data, labels, model, name):
-        model.fit(data, labels)
-        prediction = model.predict(data)
-        acc = np.mean(prediction == labels)
-        fpr, tpr, thresholds = roc_curve(labels, prediction)
-        report = classification_report(labels, prediction, target_names=['WA', 'MA'])
-        matrix = confusion_matrix(labels, prediction)
+        kf = KFold(n_splits=5)
+        real_labels, pred_labels = [], []
+        for train_index, test_index in kf.split(data, labels):
+            X_train, Y_train = data[train_index], labels[train_index]
+            X_test, Y_test = data[test_index], labels[test_index]
+            model.fit(X_train, Y_train)
+            prediction = model.predict(X_test)
+
+            pred_labels.extend(prediction)
+            real_labels.extend(Y_test)
+
+        acc = np.mean(pred_labels == real_labels)
+        fpr, tpr, thresholds = roc_curve(real_labels, pred_labels)
+        report = classification_report(real_labels, pred_labels, target_names=['WA', 'MA'])
+        matrix = confusion_matrix(real_labels, pred_labels)
         roc_auc = auc(fpr, tpr)
 
         print "Accuracy: %.2f" % acc
