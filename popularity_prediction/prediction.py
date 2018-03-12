@@ -222,7 +222,7 @@ class Prediction:
                 else:
                     new_target.append( 0 )
             # drop 1st row
-            new_data = new_data[1:]
+        new_data = new_data[1:]
 
         return new_data, new_target
 
@@ -237,7 +237,9 @@ class Prediction:
         combined_data_p1, combined_data_p2, combined_data_p3, combined_target_p1, combined_target_p2, combined_target_p3 = self.split_to_3(combined_data, combined_target, initDate)
         
         # need to concatenate the datas in to rows of 25 features
-        concat_combined_data_p1, concat_combined_target_p1 = self.concat_data(combined_data_p1, combined_data_p2)
+        concat_combined_data_p1, concat_combined_target_p1 = self.concat_data(combined_data_p1, combined_target_p1)
+        concat_combined_data_p2, concat_combined_target_p2 = self.concat_data(combined_data_p2, combined_target_p2)
+        concat_combined_data_p3, concat_combined_target_p3 = self.concat_data(combined_data_p3, combined_target_p3)
 
         # create 3 linear regression models
         m1 = linear_model.LinearRegression()
@@ -245,10 +247,10 @@ class Prediction:
         m3 = linear_model.LinearRegression()
         # train the models
         m1.fit(concat_combined_data_p1, concat_combined_target_p1)
-        if not len(combined_data_p2) == 0: 
-            m2.fit(combined_data_p2, combined_target_p1)
-        if not len(combined_data_p2) == 0:
-            m3.fit(combined_data_p3, combined_target_p1)
+        if not len(concat_combined_data_p2) <= 0: 
+            m2.fit(concat_combined_data_p2, concat_combined_target_p2)
+        if not len(concat_combined_data_p3) <= 0:
+            m3.fit(concat_combined_data_p3, concat_combined_target_p3)
         # return the trained models
         return m1, m2, m3
 
