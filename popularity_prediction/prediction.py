@@ -210,15 +210,19 @@ class Prediction:
 
                 
                 new_entry = (pd.concat(entry_5_hours, axis = 1, ignore_index=True))
-                print new_entry
-                print new_data
-                new_data.append(new_entry)
+                # print new_entry
+                # print new_data
+                new_data = pd.concat([new_data, new_entry])
+                # print new_data
+                # new_data.append(new_entry)
                 # print len(new_data)
 
                 if i+5 < len(data):
                     new_target.append( data.iloc[i+5]['tweets_num'])
                 else:
                     new_target.append( 0 )
+            # drop 1st row
+            new_data = new_data[1:]
 
         return new_data, new_target
 
@@ -471,9 +475,6 @@ class Prediction:
         # train 3 models
         m1, m2, m3 = self.train_3_models_aggregate()
         # model = m1
-        m1 = 0
-        m2 = 0
-        m3 = 0
 
         path = './test_data/'
         for filename in os.listdir(path):
@@ -510,11 +511,13 @@ class Prediction:
             # print tweets_df
             # print df_test
             # print df_target
-            # pred = model.predict(df_test)
-            # score = r2_score(pred, df_target)
-            # print '='*60
-            # print "The predicted total number of tweets in the next hour for the " + filename is str(pred)
-            # print "The actual number is " + str(df_target)
+            pred = model.predict(df_test)
+            # print pred
+            # print df_target
+            score = r2_score(pred, [df_target])
+            print '='*60
+            print "The predicted total number of tweets in the next hour for the " + filename + " is " + str(pred[0])
+            print "The actual number is " + str(df_target)
             # print "The score is " + str(score)
 
     def part2(self):
