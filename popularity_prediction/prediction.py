@@ -393,9 +393,10 @@ class Prediction:
                 tweets[index].append(data)
             for i in range(0,5):
                 tweets_df.append(list_of_json_to_df(tweets[i])[0])
-
-            df = pd.concat(tweets_df, axis=1, ignore_index=True)
-            print df
+            target = sum(list_of_json_to_df(tweets[5])[0]['tweets_num'].tolist())
+            df_test = pd.concat(tweets_df, axis=1, ignore_index=True)
+            df_target = target
+            print df_test,df_target
 
     def part2(self):
         all_tweet = []
