@@ -62,7 +62,16 @@ def init_and_last_time(data):
 
 
 def list_of_json_to_df(arr):
-    print len(arr)
+    # print len(arr)
+    if (len(arr)==0):
+        temp_dict = {
+            'tweets_num': [0],
+            'retweets_num': [0],
+            'followers_num': [0],
+            'followers_num_max': [0],
+            'time_of_day': [0]
+        }
+        return pd.DataFrame(temp_dict), -1
     # df_superbowl = pd.DataFrame(arr)
     # df_new = pd.DataFrame(columns=['tweets_num','retweets_num','followers_num','followers_num_max','time_of_day'])
     initDate = to_date(arr[0]['firstpost_date']).replace(minute=0, second=0)
@@ -79,7 +88,7 @@ def list_of_json_to_df(arr):
         # df_new.loc[len(df_new)] = new_entry
         # pass
         index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
-        print index
+        # print index
         total_num_of_tweets[index] += 1
         total_num_of_retweets[index] += dta['metrics']['citations']['total']
         total_num_of_follower[index] += dta['author']['followers']
@@ -162,6 +171,101 @@ class Prediction:
         plt.title('%s number of tweets per hour' % hashtag)
         plt.show()
 
+    def new_df(self, old_df):
+        new_dict = {
+                'tweets_num': [old_df['tweets_num']],
+                'retweets_num': [old_df['retweets_num']],
+                'followers_num': [old_df['followers_num']],
+                'followers_num_max': [old_df['followers_num_max']],
+                'time_of_day': [old_df['time_of_day']]
+                }
+        new_df = pd.DataFrame(new_dict)
+        return new_df
+
+    def concat_data(self, data, target):
+        new_data = pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])
+        new_target = []
+        entry_5_hours = []
+        temp_entry = 0
+        if not (len(data))==0:
+            for i in range (0, len(data), 5):
+                entry_5_hours = []
+                entry_5_hours.append(self.new_df(data.iloc[i]))
+                if i+1 < len(data):
+                    entry_5_hours.append(self.new_df(data.iloc[i+1]))
+                else:
+                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                if i+2 < len(data):
+                    entry_5_hours.append(self.new_df(data.iloc[i+2]))
+                else:
+                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                if i+3 < len(data):
+                    entry_5_hours.append(self.new_df(data.iloc[i+3]))
+                else:
+                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                if i+4 < len(data):
+                    entry_5_hours.append(self.new_df(data.iloc[i+4]))
+                else:
+                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+
+                
+                new_entry = (pd.concat(entry_5_hours, axis = 1, ignore_index=True))
+                print new_entry
+                print new_data
+                new_data.append(new_entry)
+                # print len(new_data)
+
+                if i+5 < len(data):
+                    new_target.append( data.iloc[i+5]['tweets_num'])
+                else:
+                    new_target.append( 0 )
+
+        return new_data, new_target
+
+    def train_3_models_aggregate(self):
+        combined_data_list = self.get_combined_data()
+        combined_data, initDate = list_of_json_to_df(combined_data_list)
+        combined_target = list(combined_data['tweets_num'])
+        combined_target.insert(0, 0)
+        combined_target = combined_target[:-1]
+
+        # split data into 3 groups
+        combined_data_p1, combined_data_p2, combined_data_p3, combined_target_p1, combined_target_p2, combined_target_p3 = self.split_to_3(combined_data, combined_target, initDate)
+        
+        # need to concatenate the datas in to rows of 25 features
+        concat_combined_data_p1, concat_combined_target_p1 = self.concat_data(combined_data_p1, combined_data_p2)
+
+        # create 3 linear regression models
+        m1 = linear_model.LinearRegression()
+        m2 = linear_model.LinearRegression()
+        m3 = linear_model.LinearRegression()
+        # train the models
+        m1.fit(concat_combined_data_p1, concat_combined_target_p1)
+        if not len(combined_data_p2) == 0: 
+            m2.fit(combined_data_p2, combined_target_p1)
+        if not len(combined_data_p2) == 0:
+            m3.fit(combined_data_p3, combined_target_p1)
+        # return the trained models
+        return m1, m2, m3
+
+    # split passed-in data into 3 groups by before, between, or after Feb 01 8AM and Feb 01 8PM
+    def split_to_3(self, data, target, initDate):
+        tz = initDate.tzinfo
+        dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
+        index_feb_1_8am = int(get_hours(dt - initDate))
+        dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
+        index_feb_1_8pm = int(get_hours(dt - initDate))
+
+        data_p1 = data[:index_feb_1_8am]
+        data_p2 = data[index_feb_1_8am:index_feb_1_8pm]
+        data_p3 = data[index_feb_1_8pm:]
+        target_p1 = target[:index_feb_1_8am]
+        target_p2 = target[index_feb_1_8am:index_feb_1_8pm]
+        target_p3 = target[index_feb_1_8pm:]
+        # return the splitted data
+        return data_p1, data_p2, data_p3, target_p1, target_p2, target_p3
+
+
     def q1(self):
         all_tweets = self.read_tweet('gohawks')
         tweetsLen = len(all_tweets)
@@ -204,18 +308,19 @@ class Prediction:
         # print df_new, 'dsad'
 
         # print self.all_data['superbowl'][0]['firstpost_date']
-        tz = to_date(self.all_data['superbowl'][0]['firstpost_date']).tzinfo
-        dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
-        index_feb_1_8am = int(get_hours(dt - initDate))
-        dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
-        index_feb_1_8pm = int(get_hours(dt - initDate))
-        data_I = data[:index_feb_1_8am]
-        data_II = data[index_feb_1_8am:index_feb_1_8pm]
-        data_III = data[index_feb_1_8pm:]
-        target_I = target[:index_feb_1_8am]
-        target_II = target[index_feb_1_8am:index_feb_1_8pm]
-        target_III = target[index_feb_1_8pm:]
+        # tz = to_date(self.all_data['superbowl'][0]['firstpost_date']).tzinfo
+        # dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
+        # index_feb_1_8am = int(get_hours(dt - initDate))
+        # dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
+        # index_feb_1_8pm = int(get_hours(dt - initDate))
+        # data_I = data[:index_feb_1_8am]
+        # data_II = data[index_feb_1_8am:index_feb_1_8pm]
+        # data_III = data[index_feb_1_8pm:]
+        # target_I = target[:index_feb_1_8am]
+        # target_II = target[index_feb_1_8am:index_feb_1_8pm]
+        # target_III = target[index_feb_1_8pm:]
 
+        data_I, data_II, data_III, target_I, target_II, target_III = self.split_to_3(data, target, initDate)
 
         kf = KFold(n_splits=10)
         # window I
@@ -232,10 +337,12 @@ class Prediction:
         print np.mean(errors_I_lasso)
 
         # window II
+        if len(data_II)==0:
+            pass
         errors_II_lm = []
         errors_II_ridge = []
         errors_II_lasso = []
-        for train_index, test_index in kf.split(data_I):
+        for train_index, test_index in kf.split(data_II):
             score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_II, target_II)
             errors_II_lm.append(score1)
             errors_II_ridge.append(score2)
@@ -245,10 +352,12 @@ class Prediction:
         print np.mean(errors_II_lasso)
 
         # window III
+        if len(data_III)==0:
+            pass
         errors_III_lm = []
         errors_III_ridge = []
         errors_III_lasso = []
-        for train_index, test_index in kf.split(data_I):
+        for train_index, test_index in kf.split(data_III):
             score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_III, target_III)
             errors_III_lm.append(score1)
             errors_III_ridge.append(score2)
@@ -359,9 +468,26 @@ class Prediction:
             plt.show()
 
     def q1_5(self):
+        # train 3 models
+        m1, m2, m3 = self.train_3_models_aggregate()
+        # model = m1
+        m1 = 0
+        m2 = 0
+        m3 = 0
+
         path = './test_data/'
         for filename in os.listdir(path):
             print filename
+            period = int(filename.split('period')[1][0])
+            if period == 1:
+                model = m1
+            elif period == 2:
+                model = m2
+                continue
+            elif period == 3:
+                model = m3
+                continue
+
             tweets = [[],[],[],[],[],[]]
             tweets_df = []
             with open(path+filename) as f:
@@ -374,10 +500,22 @@ class Prediction:
                 tweets[index].append(data)
             for i in range(0,5):
                 tweets_df.append(list_of_json_to_df(tweets[i])[0])
+                # temp_df = list_of_json_to_df(tweets[i])[0]
+                # if not temp_df == None:
+                    # tweets_df.append(list_of_json_to_df(tweets[i])[0])
             target = sum(list_of_json_to_df(tweets[5])[0]['tweets_num'].tolist())
             df_test = pd.concat(tweets_df, axis=1, ignore_index=True)
             df_target = target
-            print df_test,df_target
+            # print df_test,df_target
+            # print tweets_df
+            # print df_test
+            # print df_target
+            # pred = model.predict(df_test)
+            # score = r2_score(pred, df_target)
+            # print '='*60
+            # print "The predicted total number of tweets in the next hour for the " + filename is str(pred)
+            # print "The actual number is " + str(df_target)
+            # print "The score is " + str(score)
 
     def part2(self):
         all_tweet = []
