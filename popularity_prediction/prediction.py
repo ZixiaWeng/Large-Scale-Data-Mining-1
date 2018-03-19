@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import  TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 from sklearn.svm import LinearSVC
@@ -150,6 +150,8 @@ class Prediction:
         counter = 0
         for line in open(file, 'r'):
             data = json.loads(line)
+            data = self.preprocess(data)
+            print data,'data'
             tweets.append(data)
             counter += 1
             if (max_line > 0 and counter > max_line):
@@ -157,6 +159,13 @@ class Prediction:
 
         self.all_data[hashtag] = tweets
         return tweets
+
+    def preprocess(self, data):
+        keys = [u'firstpost_date', u'metrics', u'author',u'tweet']
+        new_data =  dict((k, data[k]) for k in keys if k in data)
+        # for key in new_data.keys():
+        return new_data
+
 
     def plot_histogram(self, hashtag):
         all_tweets = self.read_tweet(hashtag)
@@ -493,7 +502,7 @@ class Prediction:
 
             tweets = [[],[],[],[],[],[]]
             tweets_df = []
-            with open(path+filename) as f:
+            with open(f) as f:
                 line = f.readline()
                 first_data = json.loads(line)
                 initDate = to_date(first_data['firstpost_date']).replace(minute=0, second=0)
