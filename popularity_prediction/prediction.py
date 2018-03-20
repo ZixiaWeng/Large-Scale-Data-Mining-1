@@ -361,6 +361,7 @@ class Prediction:
         
     def q1_4(self, hashtag):
         data, initDate = list_of_json_to_df(self.all_data[hashtag])
+
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
