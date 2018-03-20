@@ -400,28 +400,37 @@ class Prediction:
         all_models = {
             'NB': MultinomialNB(),
             'SVM': LinearSVC(),
-            'SGD': SGDClassifier(),
             'KNN': KNeighborsClassifier(),
-            'TREE': DecisionTreeClassifier()
+            # 'TREE': DecisionTreeClassifier()
         }
         for name, model in all_models.items():
             # print type(pd.DataFrame(X_train_tfidf))
             self.location_predcition(X_train_tfidf, np.array(labels), model, name)
 
     def location_predcition(self, data, labels, model, name):
-        kf = KFold(n_splits=5)
-        real_labels, pred_labels = [], []
+        kf = KFold(n_splits=5, shuffle=True)
+        real_labels, pred_labels, scores = [], [], []
         for train_index, test_index in kf.split(data, labels):
             X_train, Y_train = data[train_index], labels[train_index]
             X_test, Y_test = data[test_index], labels[test_index]
             model.fit(X_train, Y_train)
             prediction = model.predict(X_test)
 
+            if name in {'SVM'}:
+                score = model.decision_function(X_test)
+            elif name in {'NB', 'KNN'}:
+                score = model.predict_proba(X_test)[:, 1]
+
             pred_labels.extend(prediction)
             real_labels.extend(Y_test)
+            scores.extend(score)
+
+        # print pred_labels
+        pred_labels = np.array(pred_labels)
+        real_labels = np.array(real_labels)
 
         acc = np.mean(pred_labels == real_labels)
-        fpr, tpr, thresholds = roc_curve(real_labels, pred_labels)
+        fpr, tpr, thresholds = roc_curve(real_labels, scores, pos_label=1)
         report = classification_report(real_labels, pred_labels, target_names=['WA', 'MA'])
         matrix = confusion_matrix(real_labels, pred_labels)
         roc_auc = auc(fpr, tpr)
