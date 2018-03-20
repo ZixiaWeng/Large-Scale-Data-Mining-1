@@ -339,10 +339,13 @@ class Prediction:
         initTime = data['firstpost_date'][0]
         data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(to_date(x) - to_date(initTime)))
 
+    def q1_2and4(self)
+        for hashtag in all_hashtags:
+            self.q1_2(hashtag)
+            self.q1_4(hashtag)
 
-    def linear_regression(self):
-        data, initDate = list_of_json_to_df(self.all_data['superbowl'])
-
+    def q1_2(self, hashtag):
+        data, initDate = list_of_json_to_df(self.all_data['hashtag'])
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
@@ -351,71 +354,18 @@ class Prediction:
         predict = reg.predict(data.as_matrix())
         train_errors = reg.score(data.as_matrix(), target)
         r2_sco = r2_score(target, predict)
+        print '='*60
+        print "Result for tweets with #" + hashtag + ""
+        print "1.2"
         print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
-        # print total_num_of_tweets
-        # print total_num_of_follower
-        # print time_of_day
-        # print to_date(self.all_data['superbowl'][0]['firstpost_date'])
-        # print df_new, 'dsad'
-
-        # print self.all_data['superbowl'][0]['firstpost_date']
-        # tz = to_date(self.all_data['superbowl'][0]['firstpost_date']).tzinfo
-        # dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
-        # index_feb_1_8am = int(get_hours(dt - initDate))
-        # dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
-        # index_feb_1_8pm = int(get_hours(dt - initDate))
-        # data_I = data[:index_feb_1_8am]
-        # data_II = data[index_feb_1_8am:index_feb_1_8pm]
-        # data_III = data[index_feb_1_8pm:]
-        # target_I = target[:index_feb_1_8am]
-        # target_II = target[index_feb_1_8am:index_feb_1_8pm]
-        # target_III = target[index_feb_1_8pm:]
-
+        
+    def q1_4(self, hashtag)
+        data, initDate = list_of_json_to_df(self.all_data['hashtag'])
+        target = list(data['tweets_num'])
+        target.insert(0, 0)
+        target = target[:-1]
         data_I, data_II, data_III, target_I, target_II, target_III = self.split_to_3(data, target, initDate)
-
-        kf = KFold(n_splits=10)
-        # window I
-        errors_I_lm = []
-        errors_I_ridge = []
-        errors_I_lasso = []
-        for train_index, test_index in kf.split(data_I):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_I, target_I)
-            errors_I_lm.append(score1)
-            errors_I_ridge.append(score2)
-            errors_I_lasso.append(score3)
-        print np.mean(errors_I_lm)
-        print np.mean(errors_I_ridge)
-        print np.mean(errors_I_lasso)
-
-        # window II
-        if len(data_II)==0:
-            pass
-        errors_II_lm = []
-        errors_II_ridge = []
-        errors_II_lasso = []
-        for train_index, test_index in kf.split(data_II):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_II, target_II)
-            errors_II_lm.append(score1)
-            errors_II_ridge.append(score2)
-            errors_II_lasso.append(score3)
-        print np.mean(errors_II_lm)
-        print np.mean(errors_II_ridge)
-        print np.mean(errors_II_lasso)
-
-        # window III
-        if len(data_III)==0:
-            pass
-        errors_III_lm = []
-        errors_III_ridge = []
-        errors_III_lasso = []
-        for train_index, test_index in kf.split(data_III):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, data_III, target_III)
-            errors_III_lm.append(score1)
-            errors_III_ridge.append(score2)
-            errors_III_lasso.append(score3)
-        print np.mean(errors_III_lm)
-        print np.mean(errors_III_ridge)
-        print np.mean(errors_III_lasso)
+        self.test_3_models(data_I, data_II, data_III, target_I, target_II, target_III)
 
     def run_combined_data(self):
         combined_data_list = self.get_combined_data()
@@ -424,22 +374,12 @@ class Prediction:
         combined_target.insert(0, 0)
         combined_target = combined_target[:-1]
 
-        print len(combined_data), len(combined_target)
+        # split data into 3 groups
+        combined_data_p1, combined_data_p2, combined_data_p3, combined_target_p1, combined_target_p2, combined_target_p3 = self.split_to_3(combined_data, combined_target, initDate)
+        self.test_3_models(combined_data_p1, combined_data_p2, combined_data_p3, combined_target_p1, combined_target_p2, combined_target_p3)
 
-        errors_I_lm = []
-        errors_I_ridge = []
-        errors_I_lasso = []
-        kf = KFold(n_splits=10)
-        for train_index, test_index in kf.split(combined_data):
-            score1, score2, score3 = self.test_with_3_models(train_index, test_index, combined_data, combined_target)
-            errors_I_lm.append(score1)
-            errors_I_ridge.append(score2)
-            errors_I_lasso.append(score3)
-        print np.mean(errors_I_lm)
-        print np.mean(errors_I_ridge)
-        print np.mean(errors_I_lasso)
 
-    def test_with_3_models(self, train_index, test_index, data, target):
+    def test_with_linear_reg(self, train_index, test_index, data, target):
         train_data = data.iloc[train_index]
         test_data = data.iloc[test_index]
         train_target = pd.DataFrame(target).iloc[train_index]
@@ -449,19 +389,33 @@ class Prediction:
         lm.fit(train_data.as_matrix(), train_target)
         predicted = lm.predict(test_data)
         score_lm = r2_score(predicted, test_target)
-        # ridge
-        r = linear_model.Ridge(alpha = 0.01)
-        r.fit(train_data.as_matrix(), train_target)
-        predicted = r.predict(test_data)
-        score_r = r2_score(predicted, test_target)
-        # lasso
-        las = linear_model.Lasso(alpha = 0.01)
-        las.fit(train_data.as_matrix(), train_target)
-        predicted = las.predict(test_data)
-        score_las = r2_score(predicted, test_target)
+        return score_lm
 
-        return score_lm, score_r, score_las
-
+    def test_3_models(self, data_I, data_II, data_III, target_I, target_II, target_III):
+        kf = KFold(n_splits=10)
+        # window I
+        errors_I_lm = []
+        for train_index, test_index in kf.split(data_I):
+            score = self.test_with_linear_reg(train_index, test_index, data_I, target_I)
+            errors_I_lm.append(score)
+        print "1.4"
+        print "average error for before Tues. 8 AM. = " + np.mean(errors_I_lm)
+        # window II
+        if len(data_II)==0:
+            pass
+        errors_II_lm = []
+        for train_index, test_index in kf.split(data_II):
+            score = self.test_with_linear_reg(train_index, test_index, data_I, target_I)
+            errors_II_lm.append(score)
+        print "average error for between Tues. 8 AM. and Tues. 8 PM = " + np.mean(errors_II_lm)
+        # window III
+        if len(data_III)==0:
+            pass
+        errors_III_lm = []
+        for train_index, test_index in kf.split(data_III):
+            score = self.test_with_linear_reg(train_index, test_index, data_III, target_III)
+            errors_III_lm.append(score)
+        print "average error for after Tues. 8 PM = " + np.mean(errors_III_lm)
 
     def q1_3(self):
         initDate = to_date(self.all_data['superbowl'][0]['firstpost_date']).replace(minute=0, second=0)
