@@ -8,5 +8,5 @@ if __name__ == '__main__':
     # p.linear_regression()
     # p.part3()
     # p.q1_3()
-    # p.q1_5()
-    p.q1_234()
+    p.q1_5()
+    # p.q1_234()

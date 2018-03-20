@@ -220,15 +220,13 @@ class Prediction:
         new_dict = {
                 'tweets_num': [old_df['tweets_num']],
                 'retweets_num': [old_df['retweets_num']],
-                'followers_num': [old_df['followers_num']],
                 'followers_num_max': [old_df['followers_num_max']],
-                'time_of_day': [old_df['time_of_day']]
                 }
         new_df = pd.DataFrame(new_dict)
         return new_df
 
     def concat_data(self, data, target):
-        new_data = pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])
+        new_data = pd.DataFrame([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]])
         new_target = []
         entry_5_hours = []
         temp_entry = 0
@@ -239,19 +237,19 @@ class Prediction:
                 if i+1 < len(data):
                     entry_5_hours.append(self.new_df(data.iloc[i+1]))
                 else:
-                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                    entry_5_hours.append(pd.DataFrame([[0,0,0]]))
                 if i+2 < len(data):
                     entry_5_hours.append(self.new_df(data.iloc[i+2]))
                 else:
-                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                    entry_5_hours.append(pd.DataFrame([[0,0,0]]))
                 if i+3 < len(data):
                     entry_5_hours.append(self.new_df(data.iloc[i+3]))
                 else:
-                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                    entry_5_hours.append(pd.DataFrame([[0,0,0]]))
                 if i+4 < len(data):
                     entry_5_hours.append(self.new_df(data.iloc[i+4]))
                 else:
-                    entry_5_hours.append(pd.DataFrame([[0,0,0,0,0]]))
+                    entry_5_hours.append(pd.DataFrame([[0,0,0]]))
 
                 
                 new_entry = (pd.concat(entry_5_hours, axis = 1, ignore_index=True))
@@ -266,7 +264,7 @@ class Prediction:
                     new_target.append( data.iloc[i+5]['tweets_num'])
                 else:
                     new_target.append( 0 )
-            # drop 1st row
+        # drop 1st row
         new_data = new_data[1:]
 
         return new_data, new_target
@@ -277,6 +275,12 @@ class Prediction:
         combined_target = list(combined_data['tweets_num'])
         combined_target.insert(0, 0)
         combined_target = combined_target[:-1]
+
+
+        # drop 2 features of the 5
+        combined_data = combined_data.drop(columns=['followers_num','time_of_day'])
+        # combined_data.drop(['time_of_day'])
+        print combined_data[:5]
 
         # split data into 3 groups
         combined_data_p1, combined_data_p2, combined_data_p3, combined_target_p1, combined_target_p2, combined_target_p3 = self.split_to_3(combined_data, combined_target, initDate)
@@ -495,12 +499,13 @@ class Prediction:
 
             tweets = [[],[],[],[],[],[]]
             tweets_df = []
-            with open(f) as f:
+            with open(path+filename) as f:
                 line = f.readline()
                 first_data = json.loads(line)
                 initDate = to_date(first_data['firstpost_date']).replace(minute=0, second=0)
             for line in open(path+filename, 'r'):
                 data = json.loads(line)
+                data = self.preprocess(data)
                 index = int(get_hours(to_date(data['firstpost_date']) - initDate))
                 tweets[index].append(data)
             for i in range(0,5):
@@ -508,6 +513,12 @@ class Prediction:
                 # temp_df = list_of_json_to_df(tweets[i])[0]
                 # if not temp_df == None:
                     # tweets_df.append(list_of_json_to_df(tweets[i])[0])
+            for df in tweets_df:
+                df = df.drop(columns=['followers_num','time_of_day'])
+                # df.drop(['time_of_day'])
+
+            # print tweets_df[0][:5]
+
             target = sum(list_of_json_to_df(tweets[5])[0]['tweets_num'].tolist())
             df_test = pd.concat(tweets_df, axis=1, ignore_index=True)
             df_target = target
