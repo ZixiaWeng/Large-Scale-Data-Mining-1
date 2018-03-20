@@ -9,6 +9,8 @@ from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, auc
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction import text
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -24,7 +26,14 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import r2_score
 
 
-all_hashtags = {'gohawks', 'gopatriots', 'nfl', 'patriots', 'sb49', 'superbowl'}
+all_hashtags = {
+    'gohawks',
+    'gopatriots',
+    # 'nfl',
+    # 'patriots',
+    # 'sb49',
+    # 'superbowl'
+}
 
 
 def to_date(timestamp):
@@ -136,16 +145,29 @@ class Prediction:
 
         return combined_data
 
-    def read_tweet(self, hashtag, max_line=3000):
+    def read_tweet(self, hashtag, max_line=-1):
+        print '-' * 50
+        print 'reading [%s] data' % hashtag
+
         if hashtag not in all_hashtags:
             raise Exception('no such data!')
 
         if hashtag in self.all_data.keys():
             return self.all_data[hashtag]
 
+        total_lines = {
+            'gohawks': 100000,
+            'gopatriots': 80000,
+            'nfl': 200000,
+            'patriots': 400000,
+            'sb49': 800000,
+            'superbowl': 1300000
+        }
+
         file = './tweet_data/tweets_#%s.txt' % hashtag
         tweets = []
         counter = 0
+        max_counter = total_lines[hashtag]
         for line in open(file, 'r'):
             data = json.loads(line)
             data = self.preprocess(data)
@@ -154,8 +176,10 @@ class Prediction:
             counter += 1
             if (max_line > 0 and counter > max_line):
                 break
+            if counter % 100000 == 0:
+                print '%d lines | %.1f percent' % (counter, counter * 100.0 / max_counter)
 
-        self.all_data[hashtag] = tweets
+        # self.all_data[hashtag] = tweets
         return tweets
 
     def preprocess(self, data):
@@ -173,7 +197,7 @@ class Prediction:
                 new_data['location'] = data[k]['user']['location']
                 new_data['text'] = data[k]['text']
 
-        print new_data,'data'
+        # print new_data,'data'
         # new_data =  dict((k, data[k]) for k in keys if k in data)
         # for key in new_data.keys():
         return new_data
@@ -494,6 +518,10 @@ class Prediction:
             # print "The score is " + str(score)
 
     def part2(self):
+        print '-' * 50
+        print 'PART 2'
+        print '-' * 50
+
         all_tweet = []
         labels = []
         for tweet in self.all_data['superbowl']:
@@ -509,19 +537,51 @@ class Prediction:
         tfidf_transformer = TfidfTransformer()
         X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
 
-        # print X_train_tfidf.shape
+        all_models = {
+            'NB': MultinomialNB(),
+            'SVM': LinearSVC(),
+            'KNN': KNeighborsClassifier(),
+        }
+        for name, model in all_models.items():
+            self.run_classification(X_train_tfidf, np.array(labels), model, name)
+
+    def part3(self):
+        print '-' * 50
+        print 'PART 3'
+        print '-' * 50
+
+        all_tweet = []
+        labels = []
+        for tweet in self.all_data['gohawks'][:5000]:
+            content = tweet['text'].replace('hawk', '').replace('hawk'.upper(), '').replace('Hawk', '')
+            print content
+            all_tweet.append(content)
+            labels.append(1)
+
+        for tweet in self.all_data['gopatriots'][:5000]:
+            print content
+            content = tweet['text'].replace('patriot', '').replace('patriot'.upper(), '').replace('Patriot', '')
+            all_tweet.append(content)
+            labels.append(0)
+
+        count_vect = CountVectorizer(min_df=3, stop_words=text.ENGLISH_STOP_WORDS)
+        X_train_counts = count_vect.fit_transform(all_tweet)
+
+        tfidf_transformer = TfidfTransformer()
+        X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
+
+        # svd = TruncatedSVD(n_components=300)
+        # X_train_tfidf = svd.fit_transform(X_train_tfidf)
 
         all_models = {
             'NB': MultinomialNB(),
             'SVM': LinearSVC(),
             'KNN': KNeighborsClassifier(),
-            # 'TREE': DecisionTreeClassifier()
         }
         for name, model in all_models.items():
-            # print type(pd.DataFrame(X_train_tfidf))
-            self.location_predcition(X_train_tfidf, np.array(labels), model, name)
+            self.run_classification(X_train_tfidf, np.array(labels), model, name)
 
-    def location_predcition(self, data, labels, model, name):
+    def run_classification(self, data, labels, model, name):
         kf = KFold(n_splits=5, shuffle=True)
         real_labels, pred_labels, scores = [], [], []
         for train_index, test_index in kf.split(data, labels):
