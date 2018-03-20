@@ -381,7 +381,7 @@ class Prediction:
             pass
         errors_II_lm = []
         for train_index, test_index in kf.split(data_II):
-            score = self.test_with_linear_reg(train_index, test_index, data_I, target_I)
+            score = self.test_with_linear_reg(train_index, test_index, data_II, target_II)
             errors_II_lm.append(score)
         print "average error for between Tues. 8 AM. and Tues. 8 PM = " + np.mean(errors_II_lm)
         # window III
@@ -461,10 +461,10 @@ class Prediction:
                 model = m1
             elif period == 2:
                 model = m2
-                continue
+                # continue
             elif period == 3:
                 model = m3
-                continue
+                # continue
 
             tweets = [[],[],[],[],[],[]]
             tweets_df = []
@@ -484,10 +484,6 @@ class Prediction:
             target = sum(list_of_json_to_df(tweets[5])[0]['tweets_num'].tolist())
             df_test = pd.concat(tweets_df, axis=1, ignore_index=True)
             df_target = target
-            # print df_test,df_target
-            # print tweets_df
-            # print df_test
-            # print df_target
             pred = model.predict(df_test)
             # print pred
             # print df_target
