@@ -29,10 +29,10 @@ from sklearn.metrics import r2_score
 all_hashtags = {
     'gohawks',
     'gopatriots',
-    # 'nfl',
-    # 'patriots',
-    # 'sb49',
-    # 'superbowl'
+    'nfl',
+    'patriots',
+    'sb49',
+    'superbowl'
 }
 
 
@@ -304,7 +304,7 @@ class Prediction:
         tz = initDate.tzinfo
         dt = datetime.datetime(2015,2,1,8,tzinfo =tz)
         index_feb_1_8am = int(get_hours(dt - initDate))
-        dt = datetime.datetime(2015,2,1,16, tzinfo =tz)
+        dt = datetime.datetime(2015,2,1,20, tzinfo =tz)
         index_feb_1_8pm = int(get_hours(dt - initDate))
 
         data_p1 = data[:index_feb_1_8am]
@@ -342,8 +342,8 @@ class Prediction:
     def q1_234(self):
         for hashtag in all_hashtags:
             # self.q1_2(hashtag)
-            self.q1_3(hashtag)
-            # self.q1_4(hashtag)
+            # self.q1_3(hashtag)
+            self.q1_4(hashtag)
 
     def q1_2(self, hashtag):
         data, initDate = list_of_json_to_df(self.all_data[hashtag])
@@ -362,11 +362,12 @@ class Prediction:
         
     def q1_4(self, hashtag):
         data, initDate = list_of_json_to_df(self.all_data[hashtag])
-
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
         data_I, data_II, data_III, target_I, target_II, target_III = self.split_to_3(data, target, initDate)
+        print '='*60
+        print "Result for tweets with #" + hashtag + ""
         self.test_3_models(data_I, data_II, data_III, target_I, target_II, target_III)
 
     def run_combined_data(self):
@@ -400,8 +401,8 @@ class Prediction:
         for train_index, test_index in kf.split(data_I):
             score = self.test_with_linear_reg(train_index, test_index, data_I, target_I)
             errors_I_lm.append(score)
-        print "1.4"
-        print "average error for before Tues. 8 AM. = " + np.mean(errors_I_lm)
+        # print "1.4"
+        print "average error for before Tues. 8 AM. = ", np.mean(errors_I_lm)
         # window II
         if len(data_II)==0:
             pass
@@ -409,7 +410,7 @@ class Prediction:
         for train_index, test_index in kf.split(data_II):
             score = self.test_with_linear_reg(train_index, test_index, data_II, target_II)
             errors_II_lm.append(score)
-        print "average error for between Tues. 8 AM. and Tues. 8 PM = " + np.mean(errors_II_lm)
+        print "average error for between Tues. 8 AM. and Tues. 8 PM = ", np.mean(errors_II_lm)
         # window III
         if len(data_III)==0:
             pass
@@ -417,7 +418,7 @@ class Prediction:
         for train_index, test_index in kf.split(data_III):
             score = self.test_with_linear_reg(train_index, test_index, data_III, target_III)
             errors_III_lm.append(score)
-        print "average error for after Tues. 8 PM = " + np.mean(errors_III_lm)
+        print "average error for after Tues. 8 PM = ", np.mean(errors_III_lm)
 
     def q1_3(self, hashtag):
         initDate = to_date(self.all_data[hashtag][0]['firstpost_date']).replace(minute=0, second=0)
@@ -517,7 +518,7 @@ class Prediction:
             print '='*60
             print "The predicted total number of tweets in the next hour for the " + filename + " is " + str(pred[0])
             print "The actual number is " + str(df_target)
-            # print "The score is " + str(score)
+            print "The score is " + str(score)
 
     def part2(self):
         print '-' * 50
