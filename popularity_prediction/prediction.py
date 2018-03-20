@@ -326,8 +326,8 @@ class Prediction:
         all_follower = 0.0
         all_retweets = 0.0
         for dta in all_tweets:
-            all_follower += int(dta['author']['followers'])
-            all_retweets += int(dta['metrics']['citations']['total'])
+            all_follower += int(dta['followers'])
+            all_retweets += int(dta['retweet'])
 
         print 'average followers of users: %.3f' % (all_follower / tweetsLen)
         print 'average number of retweets: %.3f' % (all_retweets / tweetsLen)
