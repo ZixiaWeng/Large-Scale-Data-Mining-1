@@ -99,9 +99,9 @@ def list_of_json_to_df(arr):
         index = int(get_hours(to_date(dta['firstpost_date']) - initDate))
         # print index
         total_num_of_tweets[index] += 1
-        total_num_of_retweets[index] += dta['metrics']['citations']['total']
-        total_num_of_follower[index] += dta['author']['followers']
-        max_num_follower[index] = max(max_num_follower[index], dta['author']['followers'])
+        total_num_of_retweets[index] += dta['retweet']
+        total_num_of_follower[index] += dta['followers']
+        max_num_follower[index] = max(max_num_follower[index], dta['followers'])
         # time_of_day[index] = to_date(dta['firstpost_date']).hour
         time_of_day[0] = initDate.hour
         for i in range(1, len(time_of_day)):
@@ -339,13 +339,13 @@ class Prediction:
         initTime = data['firstpost_date'][0]
         data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(to_date(x) - to_date(initTime)))
 
-    def q1_2and4(self)
+    def q1_234(self):
         for hashtag in all_hashtags:
             self.q1_2(hashtag)
-            self.q1_4(hashtag)
+            # self.q1_4(hashtag)
 
     def q1_2(self, hashtag):
-        data, initDate = list_of_json_to_df(self.all_data['hashtag'])
+        data, initDate = list_of_json_to_df(self.all_data[hashtag])
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
@@ -359,8 +359,8 @@ class Prediction:
         print "1.2"
         print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
         
-    def q1_4(self, hashtag)
-        data, initDate = list_of_json_to_df(self.all_data['hashtag'])
+    def q1_4(self, hashtag):
+        data, initDate = list_of_json_to_df(self.all_data[hashtag])
         target = list(data['tweets_num'])
         target.insert(0, 0)
         target = target[:-1]
