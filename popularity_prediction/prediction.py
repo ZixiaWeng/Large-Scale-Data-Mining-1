@@ -162,7 +162,20 @@ class Prediction:
 
     def preprocess(self, data):
         keys = [u'firstpost_date', u'metrics', u'author',u'tweet']
-        new_data =  dict((k, data[k]) for k in keys if k in data)
+        new_data = dict()
+        for k in keys:
+            if k in data and k == 'firstpost_date':
+                new_data[k] = data[k]
+            if k in data and k == 'metrics':
+                new_data['retweet'] = data[k]['citations']['total']
+            if k in data and k == 'author':
+                new_data['followers'] = data[k]['followers']
+            if k in data and k == 'tweet':
+                new_data['favourites_count'] = data[k]['user']['favourites_count']
+                new_data['location'] = data[k]['user']['location']
+                new_data['text'] = data[k]['text']
+        print new_data,'data'
+        # new_data =  dict((k, data[k]) for k in keys if k in data)
         # for key in new_data.keys():
         return new_data
 
