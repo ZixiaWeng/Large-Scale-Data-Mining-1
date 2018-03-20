@@ -339,7 +339,7 @@ class Prediction:
         initTime = data['firstpost_date'][0]
         data['firstpost_date'] = data['firstpost_date'].apply (lambda x : get_hours(to_date(x) - to_date(initTime)))
 
-    def q1_2and4(self)
+    def q1_2and4(self):
         for hashtag in all_hashtags:
             self.q1_2(hashtag)
             self.q1_4(hashtag)
@@ -359,7 +359,7 @@ class Prediction:
         print "1.2"
         print 'Training Accuracy: ', train_errors, 'R Squared Score', r2_sco
         
-    def q1_4(self, hashtag)
+    def q1_4(self, hashtag):
         data, initDate = list_of_json_to_df(self.all_data['hashtag'])
         target = list(data['tweets_num'])
         target.insert(0, 0)
