@@ -125,8 +125,6 @@ class Prediction:
         for hashtag in all_hashtags:
             self.all_data[hashtag] = self.read_tweet(hashtag)
 
-        self.all_data['superbowl'] = self.read_tweet('superbowl')
-
     def get_combined_data(self):
         ordered_hashtags = ['gopatriots', 'gohawks', 'nfl', 'patriots', 'sb49', 'superbowl']
         combined_data = []
@@ -151,7 +149,7 @@ class Prediction:
         for line in open(file, 'r'):
             data = json.loads(line)
             data = self.preprocess(data)
-            print data,'data'
+            # print data,'data'
             tweets.append(data)
             counter += 1
             if (max_line > 0 and counter > max_line):
@@ -161,7 +159,7 @@ class Prediction:
         return tweets
 
     def preprocess(self, data):
-        keys = [u'firstpost_date', u'metrics', u'author',u'tweet']
+        keys = [u'firstpost_date', u'metrics', u'author',u'tweet', 'location']
         new_data = dict()
         for k in keys:
             if k in data and k == 'firstpost_date':
@@ -174,6 +172,7 @@ class Prediction:
                 new_data['favourites_count'] = data[k]['user']['favourites_count']
                 new_data['location'] = data[k]['user']['location']
                 new_data['text'] = data[k]['text']
+
         print new_data,'data'
         # new_data =  dict((k, data[k]) for k in keys if k in data)
         # for key in new_data.keys():
@@ -548,8 +547,8 @@ class Prediction:
         all_tweet = []
         labels = []
         for tweet in self.all_data['superbowl']:
-            location = get_location(tweet['tweet']['user']['location'])
-            content = tweet['tweet']['text']
+            location = get_location(tweet['location'])
+            content = tweet['text']
             if location in {0, 1}:
                 all_tweet.append(content)
                 labels.append(location)
